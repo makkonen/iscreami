@@ -73,6 +73,9 @@ def make_profile(**kwargs):
         "sweetness_max": None,
         "serving_temp_min": None,
         "serving_temp_max": None,
+        "protein_min": None,
+        "protein_max": None,
+        "default_serving_method": None,
     }
     defaults.update(kwargs)
     mock = MagicMock()

@@ -61,6 +61,7 @@ def build_export_single(
             "name": recipe.name,
             "description": recipe.description,
             "recipe_type": recipe.recipe_type,
+            "serving_method": recipe.serving_method,
             "created_at": recipe.created_at.isoformat(),
             "updated_at": recipe.updated_at.isoformat(),
             "total_weight_grams": float(total_weight_g),
@@ -251,6 +252,9 @@ def resolve_or_create_target_profile(
         stabilizer_max=profile_data.get("stabilizer_max"),
         emulsifier_min=profile_data.get("emulsifier_min"),
         emulsifier_max=profile_data.get("emulsifier_max"),
+        protein_min=profile_data.get("protein_min"),
+        protein_max=profile_data.get("protein_max"),
+        default_serving_method=profile_data.get("default_serving_method"),
     )
     db_session.add(profile)
     db_session.flush()
@@ -276,6 +280,7 @@ def create_recipes_from_import(
             name=recipe_data["name"],
             description=recipe_data.get("description"),
             recipe_type=recipe_data.get("recipe_type"),
+            serving_method=recipe_data.get("serving_method"),
             target_profile_id=target_profile.id if target_profile else None,
         )
         db_session.add(recipe)

@@ -160,6 +160,10 @@ class TargetProfileBase(BaseModel):
     stabilizer_max: float | None = None
     emulsifier_min: float | None = None
     emulsifier_max: float | None = None
+    protein_min: float | None = None
+    protein_max: float | None = None
+    # How this style is usually served (an id from /serving-methods).
+    default_serving_method: str | None = Field(default=None, max_length=50)
 
 
 class TargetProfileCreate(TargetProfileBase):
@@ -200,6 +204,7 @@ class RecipeCreate(BaseModel):
     name: str = Field(max_length=255)
     description: str | None = Field(default=None, max_length=2000)
     recipe_type: str | None = Field(default=None, max_length=100)
+    serving_method: str | None = Field(default=None, max_length=50)
     target_profile_id: uuid.UUID | None = None
     ingredients: list[RecipeIngredientInput] = Field(
         default_factory=list, max_length=MAX_RECIPE_INGREDIENTS
@@ -210,6 +215,7 @@ class RecipeUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=255)  # type: ignore[assignment]
     description: str | None = Field(default=None, max_length=2000)
     recipe_type: str | None = Field(default=None, max_length=100)
+    serving_method: str | None = Field(default=None, max_length=50)
     target_profile_id: uuid.UUID | None = None
     ingredients: list[RecipeIngredientInput] | None = Field(
         default=None, max_length=MAX_RECIPE_INGREDIENTS
@@ -222,6 +228,7 @@ class RecipeOut(BaseModel):
     name: str
     description: str | None = None
     recipe_type: str | None = None
+    serving_method: str | None = None
     target_profile_id: uuid.UUID | None = None
     target_profile: TargetProfileOut | None = None
     created_at: datetime
@@ -253,6 +260,11 @@ class CalculateRequest(BaseModel):
         min_length=1, max_length=MAX_RECIPE_INGREDIENTS
     )
     serving_size_g: float = Field(default=settings.serving_size_g, gt=0)
+    # With no target_profile_id, pick the best-fitting profile and compare against it.
+    suggest_profile: bool = False
+    # How it's served (an id from /serving-methods); sets the freezing targets.
+    # Unset: the profile's usual serving method.
+    serving_method: str | None = Field(default=None, max_length=50)
 
 
 class CompositionResult(BaseModel):
@@ -321,6 +333,20 @@ class CalculateResponse(BaseModel):
     sweetness: SweetnessResult
     nutrition: NutritionResult
     target_comparison: list[MetricComparison] | None = None
+    # Set when target_comparison is against a suggested (best-fit) profile.
+    suggested_profile_id: uuid.UUID | None = None
+    # The serving method the freezing targets were judged against.
+    serving_method: str | None = None
+
+
+class ServingMethodOut(BaseModel):
+    id: str
+    label: str
+    group: str
+    description: str
+    eating_temp_c: float
+    frozen_pct_min: float
+    frozen_pct_max: float
 
 
 # --- Export/Import ---
@@ -348,6 +374,7 @@ class RecipeExportOut(BaseModel):
     name: str
     description: str | None = None
     recipe_type: str | None = None
+    serving_method: str | None = None
     created_at: str
     updated_at: str
     total_weight_grams: float

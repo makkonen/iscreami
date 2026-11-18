@@ -176,6 +176,10 @@ class TargetProfile(Base):
     stabilizer_max: Mapped[float | None] = mapped_column(Numeric(6, 2))
     emulsifier_min: Mapped[float | None] = mapped_column(Numeric(6, 2))
     emulsifier_max: Mapped[float | None] = mapped_column(Numeric(6, 2))
+    protein_min: Mapped[float | None] = mapped_column(Numeric(6, 2))
+    protein_max: Mapped[float | None] = mapped_column(Numeric(6, 2))
+    # How this style is usually served; recipes on "auto" serving use it.
+    default_serving_method: Mapped[str | None] = mapped_column(Text)
 
     recipes: Mapped[list["Recipe"]] = relationship(back_populates="target_profile")
 
@@ -189,6 +193,8 @@ class Recipe(Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     recipe_type: Mapped[str | None] = mapped_column(Text)
+    # How it will be served (e.g. eat right away, scoop later); sets the freezing target.
+    serving_method: Mapped[str | None] = mapped_column(Text)
     target_profile_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("target_profiles.id")
     )
