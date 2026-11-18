@@ -40,6 +40,7 @@ export interface RecipeExport {
     name: string;
     description: string | null;
     recipe_type: string | null;
+    serving_method?: string | null;
     created_at: string;
     updated_at: string;
     total_weight_grams: number;
@@ -171,6 +172,10 @@ export interface TargetProfile {
     stabilizer_max: number | null;
     emulsifier_min: number | null;
     emulsifier_max: number | null;
+    protein_min: number | null;
+    protein_max: number | null;
+    /** How this style is usually served (a serving method id). */
+    default_serving_method: string | null;
 }
 
 export const TargetProfileInputSchema = z.object({
@@ -195,6 +200,9 @@ export const TargetProfileInputSchema = z.object({
     stabilizer_max: numericNullable,
     emulsifier_min: numericNullable,
     emulsifier_max: numericNullable,
+    protein_min: numericNullable,
+    protein_max: numericNullable,
+    default_serving_method: z.preprocess((v) => (v === "" ? null : v), z.string().nullable()),
 });
 export type TargetProfileInput = z.infer<typeof TargetProfileInputSchema>;
 
@@ -211,6 +219,7 @@ export interface Recipe {
     name: string;
     description: string | null;
     recipe_type: string | null;
+    serving_method?: string | null;
     target_profile_id: string | null;
     target_profile: TargetProfile | null;
     total_weight_grams: number;
@@ -228,6 +237,10 @@ export interface CalculateRequest {
     target_profile_id?: string | null;
     ingredients: CalculateIngredientInput[];
     serving_size_g?: number;
+    /** With no target_profile_id, compare against the best-fitting profile. */
+    suggest_profile?: boolean;
+    /** Serving method id; unset uses the profile's usual one. */
+    serving_method?: string | null;
 }
 
 export interface CompositionResult {
@@ -298,4 +311,19 @@ export interface CalculateResponse {
     sweetness: SweetnessResult;
     nutrition: NutritionResult;
     target_comparison: MetricComparison[] | null;
+    /** Set when target_comparison is against a suggested (best-fit) profile. */
+    suggested_profile_id?: string | null;
+    /** The serving method the freezing targets were judged against. */
+    serving_method?: string | null;
+}
+
+/** How a recipe can be served: eaten at a temperature with a share of its water frozen. */
+export interface ServingMethod {
+    id: string;
+    label: string;
+    group: string;
+    description: string;
+    eating_temp_c: number;
+    frozen_pct_min: number;
+    frozen_pct_max: number;
 }

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Trash2, X } from "lucide-react";
-import { createProfile, updateProfile } from "../api";
+import { createProfile, fetchServingMethods, updateProfile } from "../api";
+import { servingGroups } from "../lib/serving";
 import { TargetProfileInputSchema, type TargetProfile, type TargetProfileInput } from "../types";
 import { useToast } from "../hooks/useToast";
 import { useEscape } from "../hooks/useEscape";
@@ -35,6 +36,9 @@ type FormFields = {
   stabilizer_max: string;
   emulsifier_min: string;
   emulsifier_max: string;
+  protein_min: string;
+  protein_max: string;
+  default_serving_method: string;
 };
 
 const EMPTY: FormFields = {
@@ -59,6 +63,9 @@ const EMPTY: FormFields = {
   stabilizer_max: "",
   emulsifier_min: "",
   emulsifier_max: "",
+  protein_min: "",
+  protein_max: "",
+  default_serving_method: "",
 };
 
 function toForm(p: TargetProfile): FormFields {
@@ -85,6 +92,9 @@ function toForm(p: TargetProfile): FormFields {
     stabilizer_max: s(p.stabilizer_max),
     emulsifier_min: s(p.emulsifier_min),
     emulsifier_max: s(p.emulsifier_max),
+    protein_min: s(p.protein_min),
+    protein_max: s(p.protein_max),
+    default_serving_method: p.default_serving_method ?? "",
   };
 }
 
@@ -182,6 +192,11 @@ export function ProfileFormModal({ open, profile, onClose }: Readonly<Props>) {
   const qc = useQueryClient();
   const { addToast } = useToast();
   const isEdit = profile != null;
+  const { data: servingMethods = [] } = useQuery({
+    queryKey: ["serving-methods"],
+    queryFn: fetchServingMethods,
+    staleTime: Infinity,
+  });
 
   function numChange(key: keyof FormFields) {
     return (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -226,6 +241,8 @@ export function ProfileFormModal({ open, profile, onClose }: Readonly<Props>) {
       stabilizer_max: "",
       emulsifier_min: "",
       emulsifier_max: "",
+      protein_min: "",
+      protein_max: "",
     }));
     setErrors({});
   }
@@ -426,19 +443,45 @@ export function ProfileFormModal({ open, profile, onClose }: Readonly<Props>) {
                 minError={errors.emulsifier_min}
                 maxError={errors.emulsifier_max}
               />
-
-              {/* Row 4 */}
               <TargetCard
-                label="Serving temperature"
-                unit="°C"
-                minValue={form.serving_temp_min}
-                maxValue={form.serving_temp_max}
-                onMinChange={numChange("serving_temp_min")}
-                onMaxChange={numChange("serving_temp_max")}
-                onDelete={resetPair("serving_temp")}
-                minError={errors.serving_temp_min}
-                maxError={errors.serving_temp_max}
+                label="Protein"
+                unit="%"
+                minValue={form.protein_min}
+                maxValue={form.protein_max}
+                onMinChange={numChange("protein_min")}
+                onMaxChange={numChange("protein_max")}
+                onDelete={resetPair("protein")}
+                minError={errors.protein_min}
+                maxError={errors.protein_max}
               />
+
+              {/* Row 4: freezing targets come from how the style is served */}
+              <div className="border border-base-200 rounded-lg p-4 bg-base-50 space-y-2">
+                <label htmlFor="usual-serving" className="font-medium text-sm text-base-content block">
+                  Usually served
+                </label>
+                <select
+                  id="usual-serving"
+                  className="select select-sm w-full"
+                  value={form.default_serving_method}
+                  onChange={(e) => setForm((prev) => ({ ...prev, default_serving_method: e.target.value }))}
+                >
+                  <option value="">Not set</option>
+                  {servingGroups(servingMethods).map((group) => (
+                    <optgroup key={group} label={group}>
+                      {servingMethods.filter((m) => m.group === group).map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <p className="text-xs text-base-content/55 leading-snug">
+                  Sets the freezing (PAC) target for recipes in this style, unless a recipe picks its own
+                  serving.
+                </p>
+              </div>
               <TargetCard
                 label="Total solids"
                 unit="%"

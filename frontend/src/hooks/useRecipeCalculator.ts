@@ -31,9 +31,14 @@ export function useRecipeCalculator() {
     const [result, setResult] = useState<CalculateResponse | null>(null);
     const [loading, setLoading] = useState(false);
     const [profile, setProfile] = useState<TargetProfile | null>(null);
+    // Chosen serving method id; null follows the profile's usual one.
+    const [servingMethod, setServingMethod] = useState<string | null>(null);
+    const servingRef = useRef<string | null>(servingMethod);
+    useEffect(() => {
+        servingRef.current = servingMethod;
+    }, [servingMethod]);
     const [currentRecipe, setCurrentRecipe] = useState<Recipe | null>(null);
     const [isSaving, setIsSaving] = useState(false);
-    const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const lastErrorAtRef = useRef<number>(0);
     const rowsRef = useRef<RecipeRow[]>(rows);
     useEffect(() => {
@@ -42,38 +47,76 @@ export function useRecipeCalculator() {
     const { addToast } = useToast();
     const qc = useQueryClient();
 
-    const triggerCalculate = useCallback(
-        (nextRows: RecipeRow[], nextProfile: TargetProfile | null) => {
-            if (timerRef.current) clearTimeout(timerRef.current);
-            if (nextRows.length === 0) {
-                setResult(null);
-                return;
-            }
-            timerRef.current = setTimeout(async () => {
-                setLoading(true);
+    // Live recalculation: at most one request in flight. While it runs, only the
+    // newest state is queued, so dragging a slider updates as fast as the server
+    // answers without piling up requests. `gen` discards responses that were
+    // overtaken by clearing the recipe.
+    const pendingRef = useRef<{
+        rows: RecipeRow[];
+        profile: TargetProfile | null;
+        serving: string | null;
+        gen: number;
+    } | null>(null);
+    const inFlightRef = useRef(false);
+    const genRef = useRef(0);
+    const clearedGenRef = useRef(0);
+
+    const pump = useCallback(async () => {
+        if (inFlightRef.current) return;
+        inFlightRef.current = true;
+        setLoading(true);
+        try {
+            while (pendingRef.current) {
+                const job = pendingRef.current;
+                pendingRef.current = null;
                 try {
                     const resp = await calculate({
-                        target_profile_id: nextProfile?.id ?? null,
-                        ingredients: nextRows.map((r) => ({
+                        target_profile_id: job.profile?.id ?? null,
+                        // No profile chosen: let the server pick the best fit.
+                        suggest_profile: !job.profile,
+                        serving_method: job.serving,
+                        ingredients: job.rows.map((r) => ({
                             ingredient_id: r.ingredient.id,
                             weight_grams: r.weight_grams,
                         })),
                     });
-                    setResult(resp);
+                    if (job.gen > clearedGenRef.current) setResult(resp);
                 } catch {
                     // Only surface the error if it persists (> 5 s since last toast)
-                    // to avoid flashing on transient debounced failures.
+                    // to avoid flashing on transient failures.
                     const now = Date.now();
                     if (now - lastErrorAtRef.current > 5000) {
                         lastErrorAtRef.current = now;
                         addToast("Could not reach the server. Please check your connection.");
                     }
-                } finally {
-                    setLoading(false);
                 }
-            }, 300);
+            }
+        } finally {
+            inFlightRef.current = false;
+            setLoading(false);
+        }
+    }, [addToast]);
+
+    const triggerCalculate = useCallback(
+        (nextRows: RecipeRow[], nextProfile: TargetProfile | null, nextServing?: string | null) => {
+            const gen = ++genRef.current;
+            // Zero-weight rows are allowed while editing but the API rejects them.
+            const weighed = nextRows.filter((r) => r.weight_grams > 0);
+            if (weighed.length === 0) {
+                pendingRef.current = null;
+                clearedGenRef.current = gen;
+                setResult(null);
+                return;
+            }
+            pendingRef.current = {
+                rows: weighed,
+                profile: nextProfile,
+                serving: nextServing === undefined ? servingRef.current : nextServing,
+                gen,
+            };
+            void pump();
         },
-        [addToast]
+        [pump]
     );
 
     const addIngredient = useCallback(
@@ -126,6 +169,14 @@ export function useRecipeCalculator() {
         [rows, triggerCalculate]
     );
 
+    const changeServingMethod = useCallback(
+        (m: string | null) => {
+            setServingMethod(m);
+            triggerCalculate(rows, profile, m);
+        },
+        [rows, profile, triggerCalculate]
+    );
+
     const loadRecipe = useCallback(
         (recipe: Recipe, targetProfile?: TargetProfile | null) => {
             const nextRows: RecipeRow[] = recipe.ingredients
@@ -137,20 +188,30 @@ export function useRecipeCalculator() {
                     sort_order: ri.sort_order,
                 }));
             const p = targetProfile ?? null;
+            const serving = recipe.serving_method ?? null;
             setRows(nextRows);
             setCurrentRecipe(recipe);
             setProfile(p);
-            triggerCalculate(nextRows, p);
+            setServingMethod(serving);
+            triggerCalculate(nextRows, p, serving);
         },
         [triggerCalculate]
     );
 
     const clearRecipe = useCallback(() => {
+        pendingRef.current = null;
+        clearedGenRef.current = ++genRef.current;
         setRows([]);
         setResult(null);
         setCurrentRecipe(null);
         setProfile(null);
+        setServingMethod(null);
     }, []);
+
+    // Discard unsaved edits and go back to the last saved version.
+    const revertRecipe = useCallback(() => {
+        if (currentRecipe) loadRecipe(currentRecipe, currentRecipe.target_profile ?? null);
+    }, [currentRecipe, loadRecipe]);
 
     const saveAsNewRecipe = useCallback(
         async (name: string) => {
@@ -159,6 +220,7 @@ export function useRecipeCalculator() {
                 const saved = await createRecipe({
                     name,
                     target_profile_id: profile?.id ?? null,
+                    serving_method: servingMethod,
                     ingredients: toIngredientInputs(rows),
                 });
                 setCurrentRecipe(saved);
@@ -170,7 +232,7 @@ export function useRecipeCalculator() {
                 setIsSaving(false);
             }
         },
-        [rows, profile, addToast, qc]
+        [rows, profile, servingMethod, addToast, qc]
     );
 
     const saveCurrentRecipe = useCallback(async () => {
@@ -180,6 +242,7 @@ export function useRecipeCalculator() {
             const saved = await apiUpdateRecipe(currentRecipe.id, {
                 name: currentRecipe.name,
                 target_profile_id: profile?.id ?? null,
+                serving_method: servingMethod,
                 ingredients: toIngredientInputs(rows),
             });
             setCurrentRecipe(saved);
@@ -190,7 +253,7 @@ export function useRecipeCalculator() {
         } finally {
             setIsSaving(false);
         }
-    }, [currentRecipe, rows, profile, addToast, qc]);
+    }, [currentRecipe, rows, profile, servingMethod, addToast, qc]);
 
     const deleteCurrentRecipe = useCallback(async () => {
         if (!currentRecipe) return;
@@ -208,18 +271,13 @@ export function useRecipeCalculator() {
         }
     }, [currentRecipe, addToast, qc, clearRecipe]);
 
-    useEffect(() => {
-        return () => {
-            if (timerRef.current) clearTimeout(timerRef.current);
-        };
-    }, []);
-
     // Detect unsaved changes by comparing current state with saved recipe
     const hasUnsavedChanges = useMemo(() => {
         if (!currentRecipe) return false;
 
         // Check if profile changed
         if ((profile?.id ?? null) !== (currentRecipe.target_profile_id ?? null)) return true;
+        if (servingMethod !== (currentRecipe.serving_method ?? null)) return true;
 
         // Check if ingredient count changed
         if (rows.length !== currentRecipe.ingredients.length) return true;
@@ -232,13 +290,14 @@ export function useRecipeCalculator() {
         }
 
         return false;
-    }, [currentRecipe, rows, profile]);
+    }, [currentRecipe, rows, profile, servingMethod]);
 
     return {
         rows,
         result,
         loading,
         profile,
+        servingMethod,
         currentRecipe,
         isSaving,
         hasUnsavedChanges,
@@ -246,8 +305,10 @@ export function useRecipeCalculator() {
         updateWeight,
         removeIngredient,
         changeProfile,
+        changeServingMethod,
         loadRecipe,
         clearRecipe,
+        revertRecipe,
         saveAsNewRecipe,
         saveCurrentRecipe,
         deleteCurrentRecipe,

@@ -11,6 +11,7 @@ import type {
     RecipeExport,
     TargetProfile,
     TargetProfileInput,
+    ServingMethod,
 } from "./types";
 
 const BASE = "/api/v1";
@@ -96,6 +97,7 @@ export function fetchRecipe(id: string): Promise<Recipe> {
 export function createRecipe(data: {
     name: string;
     target_profile_id?: string | null;
+    serving_method?: string | null;
     ingredients: { ingredient_id: string; weight_grams: number; sort_order: number }[];
 }): Promise<Recipe> {
     return request("/recipes", { method: "POST", body: JSON.stringify(data) });
@@ -106,6 +108,7 @@ export function updateRecipe(
     data: {
         name?: string;
         target_profile_id?: string | null;
+        serving_method?: string | null;
         ingredients?: { ingredient_id: string; weight_grams: number; sort_order: number }[];
     }
 ): Promise<Recipe> {
@@ -120,6 +123,10 @@ export function deleteRecipe(id: string): Promise<void> {
 
 export function fetchProfiles(): Promise<TargetProfile[]> {
     return request("/target-profiles");
+}
+
+export function fetchServingMethods(): Promise<ServingMethod[]> {
+    return request("/serving-methods");
 }
 
 export function createProfile(data: TargetProfileInput): Promise<TargetProfile> {

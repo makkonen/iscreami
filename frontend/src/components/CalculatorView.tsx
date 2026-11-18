@@ -2,13 +2,15 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { IceCreamCone } from "lucide-react";
-import { fetchProfiles, fetchRecipe } from "../api";
+import { fetchProfiles, fetchRecipe, fetchServingMethods } from "../api";
 import { useRecipeCalculator } from "../hooks/useRecipeCalculator";
 import { CompositionTable } from "./CompositionTable";
 import { FreezingSection } from "./FreezingSection";
 import { IngredientPanel } from "./IngredientPanel";
 import { IngredientSearch } from "./IngredientSearch";
 import { MetricCards } from "./MetricCards";
+import { FREEZE_METRIC_LABELS, type FreezeMetric, visibleComparisons } from "../lib/metrics";
+import { withServing } from "../lib/serving";
 import { NutritionTable } from "./NutritionTable";
 import { RecipeHeader } from "./RecipeHeader";
 import { InfoIcon } from "./InfoIcon";
@@ -25,14 +27,17 @@ export function CalculatorView() {
     result,
     loading,
     profile,
+    servingMethod,
     currentRecipe,
     isSaving,
     hasUnsavedChanges,
     changeProfile,
+    changeServingMethod,
     addIngredient,
     updateWeight,
     removeIngredient,
     loadRecipe,
+    revertRecipe,
     saveAsNewRecipe,
     saveCurrentRecipe,
     deleteCurrentRecipe,
@@ -42,6 +47,11 @@ export function CalculatorView() {
     queryKey: ["profiles"],
     queryFn: fetchProfiles,
   });
+  const { data: servingMethods } = useQuery({
+    queryKey: ["serving-methods"],
+    queryFn: fetchServingMethods,
+    staleTime: Infinity,
+  });
 
   // Load recipe from URL params if present
   const { data: urlRecipe } = useQuery({
@@ -49,6 +59,32 @@ export function CalculatorView() {
     queryFn: () => (recipeId ? fetchRecipe(recipeId) : Promise.resolve(null)),
     enabled: !!recipeId,
   });
+
+  // PAC or serving temperature for the freezing row; remembered per browser.
+  const [freezeMetric, setFreezeMetric] = useState<FreezeMetric>(() => {
+    try {
+      const saved = localStorage.getItem("freezeMetric");
+      return saved && saved in FREEZE_METRIC_LABELS ? (saved as FreezeMetric) : "pac";
+    } catch {
+      return "pac";
+    }
+  });
+  function chooseFreezeMetric(m: FreezeMetric) {
+    setFreezeMetric(m);
+    try {
+      localStorage.setItem("freezeMetric", m);
+    } catch {
+      // Storage unavailable (private mode); the choice just won't persist.
+    }
+  }
+  // A manually chosen profile wins; otherwise use the server's best-fit suggestion.
+  const suggestedProfile =
+    (!profile && profiles?.find((p) => p.id === result?.suggested_profile_id)) || null;
+  const effectiveProfile = profile ?? suggestedProfile;
+
+  const shownComparisons = result?.target_comparison
+    ? visibleComparisons(result.target_comparison, freezeMetric)
+    : null;
 
   // Recipe UI state
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
@@ -99,12 +135,17 @@ export function CalculatorView() {
           <RecipeHeader
             recipeName={currentRecipe?.name ?? null}
             targetProfile={profile}
+            suggestedProfile={suggestedProfile}
+            servingMethod={servingMethod}
+            servingMethods={servingMethods}
+            onChangeServingMethod={changeServingMethod}
             profiles={profiles}
             result={result}
             isSaving={isSaving}
             hasIngredients={rows.length > 0}
             hasUnsavedChanges={hasUnsavedChanges}
             onSaveRecipe={handleSave}
+            onRevertRecipe={revertRecipe}
             onDeleteRecipe={() => setDeleteConfirmOpen(true)}
             onChangeProfile={changeProfile}
           />
@@ -128,6 +169,7 @@ export function CalculatorView() {
               <IngredientSearch onSelect={addIngredient} />
               <div className="mt-4">
                 <IngredientPanel
+                  key={currentRecipe?.id ?? "new"}
                   rows={rows}
                   onWeightChange={updateWeight}
                   onRemove={removeIngredient}
@@ -139,7 +181,7 @@ export function CalculatorView() {
 
           {/* Right: Metrics Dashboard */}
           <div className="space-y-4">
-            {loading && (
+            {loading && !result && (
               <div className="rounded-xl border border-base-200 bg-base-100 p-4">
                 <div className="flex items-center gap-2 text-sm text-base-content/50">
                   <span className="loading loading-dots loading-sm"></span>
@@ -153,21 +195,44 @@ export function CalculatorView() {
 
             {result && (
               <>
-                {result.target_comparison && (
-                  <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4">
-                    <div className="mb-4">
+                {shownComparisons ? (
+                  <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4 lg:sticky lg:top-2 lg:z-10">
+                    <div className="mb-3 flex items-center justify-between gap-3">
                       <h2 className="text-sm font-semibold uppercase tracking-wider text-base-content/50">
                         Recipe Balance
+                        {effectiveProfile && (
+                          <span className="ml-2 normal-case tracking-normal font-normal text-base-content/50">
+                            vs <span className="font-medium text-base-content/70">{effectiveProfile.name}</span>
+                            {suggestedProfile && <span className="ml-1 italic">(suggested)</span>}
+                          </span>
+                        )}
                       </h2>
-                      {profile && (
-                        <p className="text-xs text-base-content/40 mt-1">
-                          Comparing to{" "}
-                          <span className="font-medium text-base-content/60">{profile.name}</span>{" "}
-                          targets
-                        </p>
-                      )}
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs tabular-nums text-base-content/60">
+                          {loading && <span className="loading loading-dots loading-xs mr-2 align-middle" />}
+                          {shownComparisons.filter((c) => c.status === "in_range").length}/
+                          {shownComparisons.length} in range
+                        </span>
+                        <div className="join" role="group" aria-label="Show freezing as">
+                          {(Object.keys(FREEZE_METRIC_LABELS) as FreezeMetric[]).map((m) => (
+                            <button
+                              key={m}
+                              type="button"
+                              className={`join-item btn btn-xs ${freezeMetric === m ? "btn-active" : "btn-ghost"}`}
+                              aria-pressed={freezeMetric === m}
+                              onClick={() => chooseFreezeMetric(m)}
+                            >
+                              {FREEZE_METRIC_LABELS[m]}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <MetricCards comparisons={result.target_comparison} />
+                    <MetricCards comparisons={result.target_comparison} freezeMetric={freezeMetric} />
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-dashed border-base-300 bg-base-100 px-4 py-3 text-sm text-base-content/55">
+                    No target profiles yet. Add some on the Profiles page to see where this recipe sits.
                   </div>
                 )}
 
@@ -219,7 +284,7 @@ export function CalculatorView() {
                   <p className="text-xs text-base-content/40 mb-3">
                     Check when the mix begins freezing and where it reaches scoopable consistency in service.
                   </p>
-                  <FreezingSection freezing={result.freezing} profile={profile} />
+                  <FreezingSection freezing={result.freezing} profile={withServing(effectiveProfile, result.target_comparison)} />
                 </div>
 
                 <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4">

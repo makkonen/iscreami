@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { fetchProfiles, deleteProfile } from "../api";
+import { fetchProfiles, deleteProfile, fetchServingMethods } from "../api";
 import type { TargetProfile } from "../types";
 import { ProfileFormModal } from "./ProfileFormModal";
 import { useToast } from "../hooks/useToast";
@@ -25,6 +25,11 @@ export function ProfilesView() {
   const qc = useQueryClient();
   const { addToast } = useToast();
 
+  const { data: servingMethods } = useQuery({
+    queryKey: ["serving-methods"],
+    queryFn: fetchServingMethods,
+    staleTime: Infinity,
+  });
   const { data: profiles, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["profiles"],
     queryFn: fetchProfiles,
@@ -103,7 +108,7 @@ export function ProfilesView() {
                     Total fat (%)
                   </th>
                   <th className="text-left px-4 py-3 font-medium text-base-content/60 whitespace-nowrap">
-                    Serving temp (°C)
+                    Usually served
                   </th>
                   <th className="text-left px-4 py-3 font-medium text-base-content/60 whitespace-nowrap">
                     Sweetness (POD)
@@ -149,7 +154,7 @@ export function ProfilesView() {
                       {fmtRange(profile.total_fat_min, profile.total_fat_max)}
                     </td>
                     <td className="px-4 py-2.5 text-sm tabular-nums">
-                      {fmtRange(profile.serving_temp_min, profile.serving_temp_max)}
+                      {servingMethods?.find((m) => m.id === profile.default_serving_method)?.label ?? "—"}
                     </td>
                     <td className="px-4 py-2.5 text-sm tabular-nums">
                       {fmtRange(profile.sweetness_min, profile.sweetness_max)}

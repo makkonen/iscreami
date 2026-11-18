@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { InfoIcon } from "./InfoIcon";
 import { TOOLTIPS } from "../lib/tooltips";
+import { fmtTemp } from "../lib/formatting";
 import { useEscape } from "../hooks/useEscape";
 
 interface FreezingSectionProps {
@@ -40,7 +41,7 @@ function CustomFreezingTooltip({ active, payload, label }: CustomTooltipProps) {
   return (
     <div className="bg-black/70 border border-white/20 rounded p-2 text-xs text-white">
       <p className="mb-1">{label ? `${Number(label).toFixed(1)}% frozen` : ""}</p>
-      <p>{payload[0].value == null ? "—" : `${Number(payload[0].value).toFixed(1)}°C`}</p>
+      <p>{payload[0].value == null ? "—" : fmtTemp(Number(payload[0].value))}</p>
     </div>
   );
 }
@@ -190,7 +191,7 @@ export function FreezingSection({ freezing, profile }: FreezingSectionProps) {
             <div className="text-xs font-medium text-base-content/60">Starts Freezing</div>
             <InfoIcon label={TOOLTIPS.freezingPoint} position="bottom" />
           </div>
-          <div className="text-xl font-bold tabular-nums">{freezing.freezing_point_c.toFixed(1)}°C</div>
+          <div className="text-xl font-bold tabular-nums">{fmtTemp(freezing.freezing_point_c)}</div>
           <div className="text-xs text-base-content/40 mt-0.5">freezing point</div>
         </div>
 
@@ -202,7 +203,7 @@ export function FreezingSection({ freezing, profile }: FreezingSectionProps) {
           <div className="text-xl font-bold tabular-nums">
             {freezing.serving_temperature_c == null
               ? "—"
-              : `${freezing.serving_temperature_c.toFixed(1)}°C`}
+              : fmtTemp(freezing.serving_temperature_c)}
           </div>
           <div className="text-xs text-base-content/40 mt-0.5">scooping benchmark</div>
         </div>
@@ -241,12 +242,12 @@ export function FreezingSection({ freezing, profile }: FreezingSectionProps) {
               </div>
               <div className="flex items-center gap-1.5">
                 <div className="w-3 border-t-2 border-dashed border-red-500" />
-                <span>Freezing point ({freezing.freezing_point_c.toFixed(1)}°C)</span>
+                <span>Freezing point ({fmtTemp(freezing.freezing_point_c)})</span>
               </div>
               {freezing.serving_temperature_c != null && (
                 <div className="flex items-center gap-1.5">
                   <div className="w-3 border-t-2 border-dashed border-amber-500" />
-                  <span>75% frozen ({freezing.serving_temperature_c.toFixed(1)}°C)</span>
+                  <span>75% frozen ({fmtTemp(freezing.serving_temperature_c)})</span>
                 </div>
               )}
               {profile?.serving_temp_min != null && profile?.serving_temp_max != null && (
@@ -303,7 +304,7 @@ export function FreezingSection({ freezing, profile }: FreezingSectionProps) {
                     <div className="flex gap-2.5">
                       <div className="w-4 border-t-2 border-dashed border-red-500 mt-2 shrink-0" />
                       <div>
-                        <p className="font-medium text-base-content">Freezing Point — {freezing.freezing_point_c.toFixed(1)}°C</p>
+                        <p className="font-medium text-base-content">Freezing Point — {fmtTemp(freezing.freezing_point_c)}</p>
                         <p>The temperature where ice crystals first begin to form. Above this, the mix stays fully liquid.</p>
                       </div>
                     </div>
@@ -317,7 +318,7 @@ export function FreezingSection({ freezing, profile }: FreezingSectionProps) {
                       <div className="flex gap-2.5">
                         <div className="w-4 border-t-2 border-dashed border-amber-500 mt-2 shrink-0" />
                         <div>
-                          <p className="font-medium text-base-content">75% Frozen — {freezing.serving_temperature_c.toFixed(1)}°C</p>
+                          <p className="font-medium text-base-content">75% Frozen — {fmtTemp(freezing.serving_temperature_c)}</p>
                           <p>Industry benchmark for scoopable consistency. At this temperature roughly three-quarters of the water is ice.</p>
                         </div>
                       </div>
@@ -327,7 +328,7 @@ export function FreezingSection({ freezing, profile }: FreezingSectionProps) {
                         <div className="w-4 h-3 bg-cyan-500/30 rounded-sm mt-1 shrink-0" />
                         <div>
                           <p className="font-medium text-base-content">Profile Target Range</p>
-                          <p>{profile.serving_temp_min.toFixed(1)}°C to {profile.serving_temp_max.toFixed(1)}°C — the ideal serving window for this style.</p>
+                          <p>{fmtTemp(profile.serving_temp_min)} to {fmtTemp(profile.serving_temp_max)} — the ideal serving window for this style.</p>
                         </div>
                       </div>
                     )}

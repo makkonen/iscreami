@@ -1,8 +1,9 @@
-import { Save, Trash2 } from "lucide-react";
-import type { CalculateResponse, TargetProfile } from "../types";
+import { RotateCcw, Save, Trash2 } from "lucide-react";
+import type { CalculateResponse, ServingMethod, TargetProfile } from "../types";
 import { Tooltip } from "./Tooltip";
 import { TOOLTIPS } from "../lib/tooltips";
 import { InfoIcon } from "./InfoIcon";
+import { servingGroups, withServing } from "../lib/serving";
 
 interface StatusPill {
   label: string;
@@ -11,7 +12,10 @@ interface StatusPill {
 }
 
 function getBalancePill(result: CalculateResponse | null): StatusPill {
-  const comparisons = result?.target_comparison;
+  // PAC, % frozen and serving temperature are the same judgement; count it once.
+  const comparisons = result?.target_comparison?.filter(
+    (c) => c.metric !== "serving_temp" && c.metric !== "frozen_pct",
+  );
   if (!comparisons || comparisons.length === 0) {
     return {
       label: "Balance",
@@ -169,13 +173,21 @@ function getSweetnessPill(result: CalculateResponse | null, targetProfile: Targe
 
 interface RecipeHeaderProps {
   readonly recipeName: string | null;
+  /** The profile chosen for this recipe, if any. */
   readonly targetProfile: TargetProfile | null;
+  /** Best-fit profile used when none is chosen. */
+  readonly suggestedProfile: TargetProfile | null;
+  /** Chosen serving method id; null follows the profile's usual one. */
+  readonly servingMethod: string | null;
+  readonly servingMethods?: ServingMethod[];
+  readonly onChangeServingMethod: (methodId: string | null) => void;
   readonly profiles?: TargetProfile[];
   readonly result: CalculateResponse | null;
   readonly isSaving: boolean;
   readonly hasIngredients: boolean;
   readonly hasUnsavedChanges: boolean;
   readonly onSaveRecipe: () => void;
+  readonly onRevertRecipe: () => void;
   readonly onDeleteRecipe: () => void;
   readonly onChangeProfile: (profile: TargetProfile | null) => void;
 }
@@ -183,19 +195,29 @@ interface RecipeHeaderProps {
 export function RecipeHeader({
   recipeName,
   targetProfile,
+  suggestedProfile,
+  servingMethod,
+  servingMethods = [],
+  onChangeServingMethod,
   profiles,
   result,
   isSaving,
   hasIngredients,
   hasUnsavedChanges,
   onSaveRecipe,
+  onRevertRecipe,
   onDeleteRecipe,
   onChangeProfile,
 }: RecipeHeaderProps) {
+  const effectiveProfile = targetProfile ?? suggestedProfile;
+  // The serving method actually applied (chosen, or the profile's usual one).
+  const inEffect = servingMethods.find((m) => m.id === (servingMethod ?? result?.serving_method));
+  // Freezing is judged against how it'll be served, not the style's default.
+  const judgedProfile = withServing(effectiveProfile, result?.target_comparison);
   const summaryPills = [
     getBalancePill(result),
-    getFreezePill(result, targetProfile),
-    getSweetnessPill(result, targetProfile),
+    getFreezePill(result, judgedProfile),
+    getSweetnessPill(result, judgedProfile),
   ];
 
   return (
@@ -213,9 +235,10 @@ export function RecipeHeader({
             </h1>
             {/* Compact summary line */}
             <div className="flex items-center gap-3 text-sm text-base-content/60 flex-wrap">
-              {targetProfile ? (
+              {effectiveProfile ? (
                 <span>
-                  Profile: <span className="font-semibold text-base-content/80">{targetProfile.name}</span>
+                  Profile: <span className="font-semibold text-base-content/80">{effectiveProfile.name}</span>
+                  {!targetProfile && <span className="ml-1 italic">(suggested)</span>}
                 </span>
               ) : null}
               {result?.composition.total_weight_g ? (
@@ -245,7 +268,34 @@ export function RecipeHeader({
 
           {/* Action buttons */}
           <div className="flex flex-col items-start gap-3 lg:items-end">
-            <div className="flex items-center gap-2 self-start lg:self-end">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 self-start lg:self-end">
+            <div className="flex items-center gap-2">
+              <label htmlFor="serving-select" className="text-xs text-base-content/55 flex items-center gap-1">
+                Serving
+                <InfoIcon label={TOOLTIPS.servingMethod} position="bottom" />
+              </label>
+              <select
+                id="serving-select"
+                value={servingMethod ?? ""}
+                onChange={(e) => onChangeServingMethod(e.target.value || null)}
+                className="select select-sm"
+                title={inEffect?.description}
+              >
+                <option value="">
+                  {!servingMethod && inEffect ? `Auto: ${inEffect.label}` : "Auto (style's usual)"}
+                </option>
+                {servingGroups(servingMethods).map((group) => (
+                  <optgroup key={group} label={group}>
+                    {servingMethods.filter((m) => m.group === group).map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </div>
+            <div className="flex items-center gap-2">
               <label htmlFor="profile-select" className="text-xs text-base-content/55 flex items-center gap-1">
                 Profile
                 <InfoIcon label={TOOLTIPS.profile} position="bottom" />
@@ -260,13 +310,16 @@ export function RecipeHeader({
                 }}
                 className="select select-sm min-w-48"
               >
-                <option value="">None</option>
+                <option value="">
+                  {suggestedProfile ? `Auto: ${suggestedProfile.name}` : "Auto (best fit)"}
+                </option>
                 {profiles?.map((profile) => (
                   <option key={profile.id} value={profile.id}>
                     {profile.name}
                   </option>
                 ))}
               </select>
+            </div>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
@@ -281,6 +334,19 @@ export function RecipeHeader({
                 {recipeName ? "Update" : "Save"}
               </button>
             </Tooltip>
+            {recipeName && (
+              <Tooltip content={TOOLTIPS.revertRecipe}>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost gap-1"
+                  onClick={onRevertRecipe}
+                  disabled={isSaving || !hasUnsavedChanges}
+                >
+                  <RotateCcw size={16} />
+                  Revert
+                </button>
+              </Tooltip>
+            )}
             {recipeName && (
               <Tooltip content={TOOLTIPS.deleteRecipe}>
                 <button

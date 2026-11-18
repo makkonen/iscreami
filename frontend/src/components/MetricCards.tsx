@@ -1,10 +1,16 @@
+import type { CSSProperties } from "react";
 import type { MetricComparison, MetricStatus } from "../types";
 import { InfoIcon } from "./InfoIcon";
 import { TOOLTIPS } from "../lib/tooltips";
+import { type FreezeMetric, visibleComparisons } from "../lib/metrics";
+import { cToF } from "../lib/formatting";
 
 // ─── Labels & units ───────────────────────────────────────────────────────────
 
 const METRIC_LABELS: Record<string, string> = {
+  pac: "PAC",
+  frozen_pct: "Frozen when eaten",
+  protein: "Protein",
   total_solids: "Total Solids",
   total_fat: "Total Fat",
   milk_fat: "Milk Fat",
@@ -13,14 +19,17 @@ const METRIC_LABELS: Record<string, string> = {
   stabilizer: "Stabilizer",
   emulsifier: "Emulsifier",
   sweetness: "Sweetness (POD)",
-  serving_temp: "Serving Temp",
+  serving_temp: "75% frozen at",
 };
 
 const METRIC_UNITS: Record<string, string> = {
+  pac: "",
+  frozen_pct: "%",
   serving_temp: "°C",
 };
 
 const METRIC_TOOLTIPS: Record<string, string> = {
+  pac: `${TOOLTIPS.pacMix}\n\nThe target range is the PAC that gives this profile's serving temperature for this mix.`,
   total_solids: TOOLTIPS.totalSolids,
   total_fat: TOOLTIPS.totalFat,
   milk_fat: TOOLTIPS.milkFat,
@@ -28,6 +37,9 @@ const METRIC_TOOLTIPS: Record<string, string> = {
   msnf: TOOLTIPS.msnf,
   stabilizer: TOOLTIPS.stabilizer,
   emulsifier: TOOLTIPS.emulsifier,
+  protein: TOOLTIPS.protein,
+  frozen_pct:
+    "Share of the water frozen at the serving method's eating temperature (e.g. about −9 °C after a Creami ice cream spin). Scoopable is about 75%; soft serve and a fresh Creami spin are softer, popsicles firmer.",
   sweetness: TOOLTIPS.sweetness,
   serving_temp: TOOLTIPS.servingTemp,
 };
@@ -35,6 +47,21 @@ const METRIC_TOOLTIPS: Record<string, string> = {
 // ─── Beginner-friendly hints ──────────────────────────────────────────────────
 
 const HINTS: Record<string, Partial<Record<MetricStatus, string>>> = {
+  pac: {
+    in_range: "Right softness at this profile's serving temperature",
+    below: "Low PAC — will be too hard at serving temperature",
+    above: "High PAC — will be too soft at serving temperature",
+  },
+  frozen_pct: {
+    in_range: "Right firmness for how it's served",
+    below: "Too soft when eaten — needs less PAC",
+    above: "Too firm when eaten — needs more PAC (or a re-spin)",
+  },
+  protein: {
+    in_range: "On target for this style",
+    below: "Below the protein target",
+    above: "Very high protein — watch for a chalky or rubbery texture",
+  },
   total_solids: {
     in_range: "Great body and texture for scooping",
     below: "Low solids — may freeze rock-hard or be icy",
@@ -85,36 +112,40 @@ const HINTS: Record<string, Partial<Record<MetricStatus, string>>> = {
 // ─── Status config ────────────────────────────────────────────────────────────
 
 interface StatusConfig {
-  badge: string;
-  zoneBg: string;
-  zoneBorder: string;
-  marker: string;
+  glyph: string;
   label: string;
 }
 
+// Colour shows how close to the centre a value is; the glyph says which way it
+// is out, so the state doesn't rely on colour alone.
 const STATUS_CONFIG: Record<MetricStatus, StatusConfig> = {
-  in_range: {
-    badge: "badge-success",
-    zoneBg: "bg-green-500/20 dark:bg-green-500/15",
-    zoneBorder: "border-green-500/50",
-    marker: "bg-green-600 dark:bg-green-400",
-    label: "In Range",
-  },
-  below: {
-    badge: "badge-warning",
-    zoneBg: "bg-amber-500/20 dark:bg-amber-500/15",
-    zoneBorder: "border-amber-500/50",
-    marker: "bg-amber-500 dark:bg-amber-400",
-    label: "Too Low",
-  },
-  above: {
-    badge: "badge-error",
-    zoneBg: "bg-red-500/20 dark:bg-red-500/15",
-    zoneBorder: "border-red-500/50",
-    marker: "bg-red-600 dark:bg-red-400",
-    label: "Too High",
-  },
+  in_range: { glyph: "", label: "In range" },
+  below: { glyph: "▼", label: "Too low" },
+  above: { glyph: "▲", label: "Too high" },
 };
+
+/**
+ * How far off target a value is: 0 at the centre of the range, 1 at its edge,
+ * 2 one half-range beyond. One-sided limits fade from 0 (well inside) to 1 at
+ * the limit, using a quarter of the limit as the scale.
+ */
+function offTarget(value: number, min: number | null, max: number | null): number {
+  if (min != null && max != null) {
+    const half = Math.max((max - min) / 2, 1e-6);
+    return Math.abs(value - (min + max) / 2) / half;
+  }
+  const limit = min ?? max;
+  if (limit == null) return 0;
+  const scale = Math.max(Math.abs(limit) * 0.25, 0.5);
+  const over = min != null ? min - value : value - limit;
+  return Math.max(0, 1 + over / scale);
+}
+
+/** Green (dead centre) through amber (range edge) to red (well outside). */
+function hueFor(score: number): number {
+  const s = Math.min(score, 2);
+  return s <= 1 ? 140 - 90 * s : 50 - 50 * (s - 1);
+}
 
 // ─── Gauge bar ────────────────────────────────────────────────────────────────
 
@@ -122,12 +153,11 @@ interface GaugeBarProps {
   readonly value: number;
   readonly targetMin: number | null;
   readonly targetMax: number | null;
-  readonly status: MetricStatus;
+  readonly hue: number;
 }
 
-function GaugeBar({ value, targetMin, targetMax, status }: GaugeBarProps) {
+function GaugeBar({ value, targetMin, targetMax, hue }: GaugeBarProps) {
   if (targetMin == null && targetMax == null) return null;
-  const cfg = STATUS_CONFIG[status];
 
   // Build a scale that comfortably contains both the target zone and the current value.
   // The padding ensures neither the zone nor the marker sits right at the track edge.
@@ -147,16 +177,26 @@ function GaugeBar({ value, targetMin, targetMax, status }: GaugeBarProps) {
   const zoneRight = toPos(targetMax ?? scaleMax);
 
   return (
-    <div className="relative h-1.5 rounded-full bg-base-200 mt-2.5" aria-hidden="true">
-      {/* Target zone */}
+    <div className="relative h-2 rounded-full bg-base-300" aria-hidden="true">
+      {/* Target zone: green at the centre, amber toward the edges */}
       <div
-        className={`absolute inset-y-0 rounded-full border ${cfg.zoneBg} ${cfg.zoneBorder}`}
-        style={{ left: `${zoneLeft}%`, width: `${zoneRight - zoneLeft}%` }}
+        className="absolute inset-y-0 rounded-full border border-base-content/20"
+        style={{
+          left: `${zoneLeft}%`,
+          width: `${zoneRight - zoneLeft}%`,
+          background:
+            targetMin != null && targetMax != null
+              ? "linear-gradient(to right, hsl(50 90% 50% / 0.4), hsl(140 65% 45% / 0.55), hsl(50 90% 50% / 0.4))"
+              : "hsl(140 65% 45% / 0.45)",
+        }}
       />
       {/* Current-value marker */}
       <div
-        className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3 h-3 rounded-full border-2 border-base-100 shadow-sm ${cfg.marker}`}
-        style={{ left: `${Math.max(2, Math.min(98, valuePos))}%` }}
+        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full ring-2 ring-base-100 shadow transition-[left,background-color] duration-150"
+        style={{
+          left: `${Math.max(2, Math.min(98, valuePos))}%`,
+          backgroundColor: `hsl(${hue} 75% 48%)`,
+        }}
       />
     </div>
   );
@@ -166,83 +206,58 @@ function GaugeBar({ value, targetMin, targetMax, status }: GaugeBarProps) {
 
 interface MetricCardsProps {
   readonly comparisons: MetricComparison[] | null;
+  readonly freezeMetric: FreezeMetric;
 }
 
-export function MetricCards({ comparisons }: MetricCardsProps) {
+function toFahrenheit(c: MetricComparison): MetricComparison {
+  const f = (v: number | null) => (v == null ? null : Math.round(cToF(v) * 10) / 10);
+  return { ...c, value: cToF(c.value), target_min: f(c.target_min), target_max: f(c.target_max) };
+}
+
+function rangeText(c: MetricComparison, unit: string): string {
+  if (c.target_min != null && c.target_max != null) return `${c.target_min}–${c.target_max}${unit}`;
+  if (c.target_max != null) return `≤ ${c.target_max}${unit}`;
+  if (c.target_min != null) return `≥ ${c.target_min}${unit}`;
+  return "";
+}
+
+/** Compact one-line-per-metric view, so every target fits on screen at once. */
+export function MetricCards({ comparisons, freezeMetric }: MetricCardsProps) {
   if (!comparisons || comparisons.length === 0) return null;
 
-  const inRangeCount = comparisons.filter((c) => c.status === "in_range").length;
-  const total = comparisons.length;
-  const issueCount = total - inRangeCount;
-
-  let summaryCfg = { bg: "bg-green-50 dark:bg-green-900/20", text: "text-green-800 dark:text-green-300", dot: "bg-green-500" };
-  if (issueCount > 0 && issueCount <= Math.ceil(total / 2)) {
-    summaryCfg = { bg: "bg-amber-50 dark:bg-amber-900/20", text: "text-amber-800 dark:text-amber-300", dot: "bg-amber-500" };
-  } else if (issueCount > Math.ceil(total / 2)) {
-    summaryCfg = { bg: "bg-red-50 dark:bg-red-900/20", text: "text-red-800 dark:text-red-300", dot: "bg-red-500" };
-  }
-
-  let summaryText = "All metrics in range";
-  if (issueCount === 1) summaryText = "1 metric needs attention";
-  else if (issueCount > 1) summaryText = `${issueCount} metrics may need attention`;
-
   return (
-    <div>
-      {/* Summary banner */}
-      <div className={`flex items-center gap-2.5 rounded-lg px-3 py-2 mb-4 ${summaryCfg.bg}`}>
-        <span className={`w-2 h-2 rounded-full shrink-0 ${summaryCfg.dot}`} aria-hidden="true" />
-        <span className={`text-sm font-medium ${summaryCfg.text}`}>{summaryText}</span>
-        <span className="text-xs text-base-content/30 ml-auto tabular-nums">{inRangeCount}/{total}</span>
-      </div>
+    <div className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)_4.5rem_4.75rem] items-center gap-x-3 gap-y-2.5">
+      {visibleComparisons(comparisons, freezeMetric).map((raw) => {
+        const inF = raw.metric === "serving_temp" && freezeMetric === "serving_temp_f";
+        const c = inF ? toFahrenheit(raw) : raw;
+        const label = METRIC_LABELS[c.metric] ?? c.metric;
+        const unit = inF ? "°F" : (METRIC_UNITS[c.metric] ?? "%");
+        const cfg = STATUS_CONFIG[c.status];
+        const hint = HINTS[c.metric]?.[c.status];
+        const range = rangeText(c, unit);
+        const hue = hueFor(offTarget(c.value, c.target_min, c.target_max));
+        const tooltip = [METRIC_TOOLTIPS[c.metric] ?? label, hint].filter(Boolean).join("\n\n");
 
-      {/* Metric rows */}
-      <div className="divide-y divide-base-200">
-        {comparisons.map((c) => {
-          const label = METRIC_LABELS[c.metric] ?? c.metric;
-          const unit = METRIC_UNITS[c.metric] ?? "%";
-          const cfg = STATUS_CONFIG[c.status];
-          const hint = HINTS[c.metric]?.[c.status];
-
-          let rangeStr = "";
-          if (c.target_min != null && c.target_max != null) {
-            rangeStr = `${c.target_min}–${c.target_max}${unit}`;
-          } else if (c.target_max != null) {
-            rangeStr = `≤ ${c.target_max}${unit}`;
-          } else if (c.target_min != null) {
-            rangeStr = `≥ ${c.target_min}${unit}`;
-          }
-
-          return (
-            <div key={c.metric} className="py-3 first:pt-0 last:pb-0">
-              {/* Header: label · badge · value */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="text-sm font-medium text-base-content/80 truncate">{label}</span>
-                  <InfoIcon label={METRIC_TOOLTIPS[c.metric] ?? label} position="bottom" />
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`badge badge-sm ${cfg.badge}`}>{cfg.label}</span>
-                  <span className="text-base font-bold tabular-nums leading-none">
-                    {c.value.toFixed(1)}
-                    <span className="text-xs font-normal text-base-content/50 ml-0.5">{unit}</span>
-                  </span>
-                </div>
-              </div>
-
-              {/* Gauge */}
-              <GaugeBar value={c.value} targetMin={c.target_min} targetMax={c.target_max} status={c.status} />
-
-              {/* Hint + target range */}
-              {(hint ?? rangeStr) && (
-                <div className="flex items-start justify-between gap-4 mt-1.5">
-                  {hint && <p className="text-xs text-base-content/50 leading-snug">{hint}</p>}
-                  {rangeStr && <p className="text-xs text-base-content/50 shrink-0">target {rangeStr}</p>}
-                </div>
-              )}
+        return (
+          <div key={c.metric} className="contents">
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="text-sm font-medium text-base-content/85 truncate">{label}</span>
+              <InfoIcon label={tooltip} position="bottom" />
             </div>
-          );
-        })}
-      </div>
+            <GaugeBar value={c.value} targetMin={c.target_min} targetMax={c.target_max} hue={hue} />
+            <span
+              className="text-sm font-bold tabular-nums text-right transition-colors duration-150 text-[hsl(var(--hue)_70%_35%)] dark:text-[hsl(var(--hue)_80%_65%)]"
+              style={{ "--hue": hue } as CSSProperties}
+            >
+              <span className="sr-only">{cfg.label}: </span>
+              {cfg.glyph && <span className="text-[10px] mr-0.5" aria-hidden="true">{cfg.glyph}</span>}
+              {c.value.toFixed(Math.abs(c.value) < 1 ? 2 : 1)}
+              <span className="text-xs font-normal text-base-content/60 ml-0.5">{unit}</span>
+            </span>
+            <span className="text-xs tabular-nums text-base-content/60 text-right">{range}</span>
+          </div>
+        );
+      })}
     </div>
   );
 }

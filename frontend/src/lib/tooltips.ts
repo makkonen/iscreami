@@ -6,7 +6,7 @@
 export const TOOLTIPS = {
     // === Calculator Page ===
     profile:
-        "Choose a style target (e.g. gelato, sorbet, soft serve) to see how your recipe compares to typical ranges for that style. Leave blank to calculate without targets.",
+        "The style target your recipe is compared against. On Auto, the best-fitting profile is picked for you and follows the recipe as you edit it. Choose one to pin it; it saves with the recipe.",
 
     // === Metrics & Composition ===
     totalSolids:
@@ -43,6 +43,9 @@ export const TOOLTIPS = {
 
     // === Recipe Management ===
     saveRecipe: "Save your current recipe for future use",
+    servingMethod:
+        "How you'll serve it sets the freezing target: the temperature it's eaten at and how frozen it should be then. A Creami spin warms a −18 °C pint to about −9 °C (lite about −7 °C) and is eaten soft; scooped servings aim for about 75% frozen; popsicles firmer. Saved with the recipe.",
     deleteRecipe: "Delete the currently open recipe",
+    revertRecipe: "Discard unsaved changes and go back to the saved recipe",
 };
 
