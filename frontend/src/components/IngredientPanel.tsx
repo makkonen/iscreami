@@ -1,5 +1,29 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowDownWideNarrow, CornerDownRight, CornerUpLeft, Lock, LockOpen, Trash2 } from "lucide-react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  ArrowDownWideNarrow,
+  CornerDownRight,
+  CornerUpLeft,
+  GripVertical,
+  Lock,
+  LockOpen,
+  Trash2,
+} from "lucide-react";
 import { rowKey, type RecipeRow } from "../hooks/useRecipeCalculator";
 import type { MetricComparison } from "../types";
 import { inSpecBand, type WeightBand } from "../lib/inSpec";
@@ -17,6 +41,30 @@ interface IngredientPanelProps {
   /** Rows the balancer must leave alone. */
   readonly lockedKeys: ReadonlySet<string>;
   readonly onToggleLock: (key: string) => void;
+  /** Move a row to where another row is (drag to reorder). */
+  readonly onMoveRow: (fromKey: string, toKey: string) => void;
+  readonly onSortByAmount: () => void;
+}
+
+/** Drag-handle props: only the grip starts a drag, so sliders never do. */
+type HandleProps = {
+  readonly ref: (el: HTMLElement | null) => void;
+  readonly attributes: ReturnType<typeof useSortable>["attributes"];
+  readonly listeners: ReturnType<typeof useSortable>["listeners"];
+};
+
+function SortableRow({ id, children }: { id: string; children: (handle: HandleProps) => ReactNode }) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, position: "relative", zIndex: isDragging ? 10 : undefined }}
+      className={isDragging ? "rounded bg-base-200 shadow-lg" : undefined}
+    >
+      {children({ ref: setActivatorNodeRef, attributes, listeners })}
+    </div>
+  );
 }
 
 interface IngredientRowWithPct {
@@ -109,34 +157,32 @@ export function IngredientPanel({
   onSetWeights,
   lockedKeys,
   onToggleLock,
+  onMoveRow,
+  onSortByAmount,
 }: IngredientPanelProps) {
-  // Rows keep the order they had when the recipe opened (biggest first) and
-  // new ones join at the end, so nothing re-sorts under you while editing.
-  // The weight each row had when first seen anchors its typical-use limits.
-  const keySignature = rows.map(rowKey).join("|");
-  const [seen, setSeen] = useState<{ signature: string; order: string[]; start: Record<string, number> }>({
+  // Rows show in the recipe's own order (drag to change it; it saves with the
+  // recipe), so nothing re-sorts under you while editing. The weight each row
+  // had when first seen anchors its typical-use limits.
+  const keySignature = rows.map(rowKey).sort().join("|");
+  const [seen, setSeen] = useState<{ signature: string; start: Record<string, number> }>({
     signature: "",
-    order: [],
     start: {},
   });
   if (seen.signature !== keySignature) {
-    const present = new Set(rows.map(rowKey));
-    const fresh = rows
-      .filter((r) => !seen.order.includes(rowKey(r)))
-      .sort((a, b) => b.weight_grams - a.weight_grams);
+    const fresh = rows.filter((r) => !(rowKey(r) in seen.start));
     setSeen({
       signature: keySignature,
-      order: [...seen.order.filter((k) => present.has(k)), ...fresh.map(rowKey)],
       start: { ...seen.start, ...Object.fromEntries(fresh.map((r) => [rowKey(r), r.weight_grams])) },
     });
   }
 
-  // Re-sort on request (largest first), keeping the order stable otherwise.
-  const sortByAmount = () =>
-    setSeen((cur) => ({
-      ...cur,
-      order: [...rows].sort((a, b) => b.weight_grams - a.weight_grams).map(rowKey),
-    }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    if (over && active.id !== over.id) onMoveRow(String(active.id), String(over.id));
+  };
 
   // Each slider's scale, fixed once you touch it, so it doesn't jump when you
   // let go. It's recomputed only after a drag ends near either end of the
@@ -162,11 +208,7 @@ export function IngredientPanel({
         pct: mixWeight > 0 ? (row.weight_grams / mixWeight) * 100 : 0,
         sectionIndex,
       }))
-      .sort((a, b) => {
-        const ai = seen.order.indexOf(a.key);
-        const bi = seen.order.indexOf(b.key);
-        return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
-      });
+
   const sortedMix = withPct(mixRows);
   const sortedAddins = withPct(addinRows);
 
@@ -224,7 +266,7 @@ export function IngredientPanel({
     };
   }, [dragging, scales, rescale]);
 
-  function renderRow({ row, key, pct, sectionIndex }: IngredientRowWithPct) {
+  function renderRow({ row, key, pct, sectionIndex }: IngredientRowWithPct, handle: HandleProps) {
     // Add-ins don't affect the mix's targets, so they have no in-spec band.
     const band = row.is_addin ? null : inSpecBand(mixRows, sectionIndex, comparisons, seen.start[key]);
     const max = scales[key] ?? sliderMax(row.weight_grams, band);
@@ -234,9 +276,20 @@ export function IngredientPanel({
       : "";
     const name = row.ingredient.name;
     return (
-      <div key={key} className={`${GRID} gap-y-1 items-center px-2 py-1.5 rounded hover:bg-base-200/50`}>
+      <div className={`${GRID} gap-y-1 items-center px-2 py-1.5 rounded hover:bg-base-200/50`}>
         <div className="min-w-0">
           <span className="text-sm font-medium truncate flex items-center gap-1" title={name}>
+            <button
+              type="button"
+              ref={handle.ref}
+              {...handle.attributes}
+              {...handle.listeners}
+              className="shrink-0 -ml-1 cursor-grab touch-none text-base-content/25 hover:text-base-content/60 active:cursor-grabbing"
+              aria-label={`Reorder ${name}`}
+              title="Drag to reorder"
+            >
+              <GripVertical size={13} />
+            </button>
             {!row.is_addin && (
               <button
                 type="button"
@@ -341,20 +394,28 @@ export function IngredientPanel({
         <div className="space-y-0.5">
           <div className="px-2 pt-2 pb-1 flex items-start justify-between gap-3">
             <p className="text-xs text-base-content/45 leading-snug">
-              Largest first, as opened. Sliders start centred (none to double); the green strip under
+              Drag <GripVertical size={11} className="inline -mt-0.5" /> to reorder. Sliders start centred (none to double); the green strip under
               each is the weight range that keeps every target and typical-use limit in spec, with the
               rest of the recipe unchanged.
             </p>
             <button
               type="button"
               className="btn btn-ghost btn-xs shrink-0 gap-1 text-base-content/60"
-              onClick={sortByAmount}
+              onClick={onSortByAmount}
               title="Re-sort largest first"
             >
               <ArrowDownWideNarrow size={13} /> Sort
             </button>
           </div>
-          {sortedMix.map(renderRow)}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={sortedMix.map((r) => r.key)} strategy={verticalListSortingStrategy}>
+              {sortedMix.map((item) => (
+                <SortableRow key={item.key} id={item.key}>
+                  {(handle) => renderRow(item, handle)}
+                </SortableRow>
+              ))}
+            </SortableContext>
+          </DndContext>
         </div>
       )}
 
@@ -398,7 +459,15 @@ export function IngredientPanel({
               Folded in after freezing: counted in nutrition, not in the mix&apos;s balance. % is of the mix.
             </p>
           </div>
-          {sortedAddins.map(renderRow)}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext items={sortedAddins.map((r) => r.key)} strategy={verticalListSortingStrategy}>
+              {sortedAddins.map((item) => (
+                <SortableRow key={item.key} id={item.key}>
+                  {(handle) => renderRow(item, handle)}
+                </SortableRow>
+              ))}
+            </SortableContext>
+          </DndContext>
           <div className={`${GRID} px-2 py-2 border-t border-base-200 mt-2 rounded-md bg-base-200/30`}>
             <span className="text-sm font-semibold">Total with add-ins</span>
             <span className="hidden sm:block" />

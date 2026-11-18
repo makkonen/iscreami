@@ -227,6 +227,23 @@ export function useRecipeCalculator() {
         [profile, triggerCalculate]
     );
 
+    // Row order is the recipe's order: saved with it and restored on Revert.
+    const moveRow = useCallback((fromKey: string, toKey: string) => {
+        setRows((prev) => {
+            const from = prev.findIndex((r) => rowKey(r) === fromKey);
+            const to = prev.findIndex((r) => rowKey(r) === toKey);
+            if (from === -1 || to === -1 || from === to) return prev;
+            const next = [...prev];
+            const [moved] = next.splice(from, 1);
+            next.splice(to, 0, moved);
+            return next;
+        });
+    }, []);
+
+    const sortByAmount = useCallback(() => {
+        setRows((prev) => [...prev].sort((a, b) => b.weight_grams - a.weight_grams));
+    }, []);
+
     // Move a row between the mix and the add-ins; if the ingredient is already
     // in the other section, the weights are combined.
     const toggleAddin = useCallback(
@@ -375,6 +392,11 @@ export function useRecipeCalculator() {
         const savedByKey = new Map(
             currentRecipe.ingredients.map((ri) => [rowKey({ ingredient: ri.ingredient, is_addin: ri.is_addin ?? false }), ri])
         );
+        // Order counts too: it's saved with the recipe.
+        const savedOrder = [...currentRecipe.ingredients]
+            .sort((a, b) => a.sort_order - b.sort_order)
+            .map((ri) => rowKey({ ingredient: ri.ingredient, is_addin: ri.is_addin ?? false }));
+        if (rows.some((row, i) => rowKey(row) !== savedOrder[i])) return true;
         for (const row of rows) {
             const saved = savedByKey.get(rowKey(row));
             if (!saved || saved?.weight_grams !== row.weight_grams) return true;
@@ -396,6 +418,8 @@ export function useRecipeCalculator() {
         updateWeight,
         removeIngredient,
         toggleAddin,
+        moveRow,
+        sortByAmount,
         setWeights,
         lockedKeys,
         toggleLock,

@@ -39,6 +39,8 @@ export function CalculatorView() {
     updateWeight,
     removeIngredient,
     toggleAddin,
+    moveRow,
+    sortByAmount,
     setWeights,
     lockedKeys,
     toggleLock,
@@ -207,6 +209,8 @@ export function CalculatorView() {
                   onWeightChange={updateWeight}
                   onRemove={removeIngredient}
                   onToggleAddin={toggleAddin}
+                  onMoveRow={moveRow}
+                  onSortByAmount={sortByAmount}
                   onSetWeights={setWeights}
                   lockedKeys={lockedKeys}
                   onToggleLock={toggleLock}
