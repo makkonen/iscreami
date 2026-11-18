@@ -43,6 +43,8 @@ export function inSpecBand(
   rows: readonly Row[],
   index: number,
   comparisons: readonly MetricComparison[] | null,
+  /** The weight the recipe had when opened; usage limits never exclude it. */
+  startWeight?: number,
 ): WeightBand | null {
   if (!comparisons?.length) return null;
   const self = rows[index];
@@ -104,13 +106,15 @@ export function inSpecBand(
   const others = rows.reduce((t, r, j) => (j === index || r.weight_grams <= 0 ? t : t + r.weight_grams), 0);
   const asWeight = (pct: number) => (pct >= 100 ? Infinity : ((pct / 100) * others) / (1 - pct / 100));
   const { usage_min_pct: umin, usage_max_pct: umax } = self.ingredient;
-  // They never exclude the weight the recipe already uses: that amount works.
+  // They never exclude the weight the recipe had when opened (that amount
+  // works), but they do apply to a weight dragged past them now.
+  const start = startWeight ?? self.weight_grams;
   if (umin != null && umin > 0) {
-    lo = Math.max(lo, Math.min(asWeight(umin), self.weight_grams));
+    lo = Math.max(lo, Math.min(asWeight(umin), start));
     constrained = true;
   }
   if (umax != null) {
-    hi = Math.min(hi, Math.max(asWeight(umax), self.weight_grams));
+    hi = Math.min(hi, Math.max(asWeight(umax), start));
     constrained = true;
   }
 

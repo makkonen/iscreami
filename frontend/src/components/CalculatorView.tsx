@@ -89,6 +89,20 @@ export function CalculatorView() {
     (!profile && profiles?.find((p) => p.id === result?.suggested_profile_id)) || null;
   const effectiveProfile = profile ?? suggestedProfile;
 
+  // Ingredients outside their typical use, as % of the mix; live with the sliders.
+  const mixTotal = rows.reduce((t, r) => (r.is_addin ? t : t + r.weight_grams), 0);
+  const usageWarnings = rows.flatMap((r) => {
+    if (r.is_addin || mixTotal <= 0 || r.weight_grams <= 0) return [];
+    const pct = (r.weight_grams / mixTotal) * 100;
+    const { usage_min_pct: lo, usage_max_pct: hi } = r.ingredient;
+    // A little tolerance, so amounts that round to the limit don't warn.
+    if (hi != null && pct > hi * 1.03)
+      return [`${r.ingredient.name}: ${pct.toFixed(pct < 1 ? 2 : 1)}% of mix (typical use up to ${hi}%)`];
+    if (lo != null && lo > 0 && pct < lo * 0.97)
+      return [`${r.ingredient.name}: ${pct.toFixed(pct < 1 ? 3 : 1)}% of mix (typical use at least ${lo}%)`];
+    return [];
+  });
+
   const shownComparisons = result?.target_comparison
     ? visibleComparisons(result.target_comparison, freezeMetric)
     : null;
@@ -252,6 +266,13 @@ export function CalculatorView() {
                       </div>
                     </div>
                     <MetricCards comparisons={result.target_comparison} freezeMetric={freezeMetric} />
+                    {usageWarnings.length > 0 && (
+                      <ul className="mt-3 space-y-1 border-t border-base-200 pt-2 text-xs text-amber-700 dark:text-amber-400">
+                        {usageWarnings.map((w) => (
+                          <li key={w}>▲ {w}</li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
                 ) : (
                   <div className="rounded-xl border border-dashed border-base-300 bg-base-100 px-4 py-3 text-sm text-base-content/55">

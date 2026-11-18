@@ -105,15 +105,32 @@ export function IngredientPanel({
   lockedKeys,
   onToggleLock,
 }: IngredientPanelProps) {
-  // While a weight is being dragged or typed, keep the row order and the
-  // slider's scale fixed so nothing jumps out from under the cursor.
-  const [frozenOrder, setFrozenOrder] = useState<string[] | null>(null);
-  const [frozenMax, setFrozenMax] = useState<Record<string, number>>({});
+  // Rows keep the order they had when the recipe opened (biggest first) and
+  // new ones join at the end, so nothing re-sorts under you while editing.
+  // The weight each row had when first seen anchors its typical-use limits.
+  const keySignature = rows.map(rowKey).join("|");
+  const [seen, setSeen] = useState<{ signature: string; order: string[]; start: Record<string, number> }>({
+    signature: "",
+    order: [],
+    start: {},
+  });
+  if (seen.signature !== keySignature) {
+    const present = new Set(rows.map(rowKey));
+    const fresh = rows
+      .filter((r) => !seen.order.includes(rowKey(r)))
+      .sort((a, b) => b.weight_grams - a.weight_grams);
+    setSeen({
+      signature: keySignature,
+      order: [...seen.order.filter((k) => present.has(k)), ...fresh.map(rowKey)],
+      start: { ...seen.start, ...Object.fromEntries(fresh.map((r) => [rowKey(r), r.weight_grams])) },
+    });
+  }
+
+  // Each slider's scale, fixed once you touch it, so it doesn't jump when you
+  // let go. It's recomputed only after a drag ends near either end of the
+  // track, or when the weight is typed.
+  const [scales, setScales] = useState<Record<string, number>>({});
   const [dragging, setDragging] = useState<string | null>(null);
-  // Weight each slider's scale is based on. It's kept after a drag, so the
-  // handle stays where you left it, and only resets when a drag ends near
-  // either end of the track (or the weight is typed).
-  const [refWeights, setRefWeights] = useState<Record<string, number>>({});
   const rowsRef = useRef(rows);
   useEffect(() => {
     rowsRef.current = rows;
@@ -134,14 +151,9 @@ export function IngredientPanel({
         sectionIndex,
       }))
       .sort((a, b) => {
-        if (frozenOrder) {
-          const ai = frozenOrder.indexOf(a.key);
-          const bi = frozenOrder.indexOf(b.key);
-          return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
-        }
-        // Biggest first; insertion order breaks ties.
-        if (b.pct !== a.pct) return b.pct - a.pct;
-        return a.sectionIndex - b.sectionIndex;
+        const ai = seen.order.indexOf(a.key);
+        const bi = seen.order.indexOf(b.key);
+        return (ai === -1 ? Infinity : ai) - (bi === -1 ? Infinity : bi);
       });
   const sortedMix = withPct(mixRows);
   const sortedAddins = withPct(addinRows);
@@ -174,25 +186,23 @@ export function IngredientPanel({
   }, [scaleBase]);
   const scaleMax = (scaleBase?.mix ?? mixWeight) * 2;
 
-  const freeze = () => {
-    setFrozenOrder((cur) => cur ?? [...sortedMix, ...sortedAddins].map((r) => r.key));
-  };
-  const unfreeze = useCallback(() => {
-    setFrozenOrder(null);
-    setFrozenMax({});
-    setDragging(null);
+  const rescale = useCallback((key: string) => {
+    setScales((m) => {
+      const next = { ...m };
+      delete next[key];
+      return next;
+    });
   }, []);
 
-  // A drag can end outside the slider, so listen on the window.
+  // A drag can end outside the slider, so listen on the window. The scale
+  // stays as it was unless the handle ended near either end.
   useEffect(() => {
     if (!dragging) return;
     const end = () => {
-      const max = frozenMax[dragging];
+      const max = scales[dragging];
       const weight = rowsRef.current.find((r) => rowKey(r) === dragging)?.weight_grams ?? 0;
-      if (max && (weight < max * 0.1 || weight > max * 0.9)) {
-        setRefWeights((m) => ({ ...m, [dragging]: weight }));
-      }
-      unfreeze();
+      if (max && (weight < max * 0.1 || weight > max * 0.9)) rescale(dragging);
+      setDragging(null);
     };
     window.addEventListener("pointerup", end);
     window.addEventListener("pointercancel", end);
@@ -200,12 +210,12 @@ export function IngredientPanel({
       window.removeEventListener("pointerup", end);
       window.removeEventListener("pointercancel", end);
     };
-  }, [dragging, frozenMax, unfreeze]);
+  }, [dragging, scales, rescale]);
 
   function renderRow({ row, key, pct, sectionIndex }: IngredientRowWithPct) {
     // Add-ins don't affect the mix's targets, so they have no in-spec band.
-    const band = row.is_addin ? null : inSpecBand(mixRows, sectionIndex, comparisons);
-    const max = frozenMax[key] ?? sliderMax(refWeights[key] ?? row.weight_grams, band);
+    const band = row.is_addin ? null : inSpecBand(mixRows, sectionIndex, comparisons, seen.start[key]);
+    const max = scales[key] ?? sliderMax(row.weight_grams, band);
     const step = sliderStep(max);
     const bandText = band
       ? ` · in spec ${fmtWeight(band.lo)}–${Number.isFinite(band.hi) ? fmtWeight(band.hi) : "∞"} g`
@@ -243,14 +253,10 @@ export function IngredientPanel({
             aria-label={`Adjust ${name}`}
             title={`0 – ${fmtWeight(max)} g${bandText}`}
             onPointerDown={() => {
-              freeze();
-              setFrozenMax((m) => ({ ...m, [key]: max }));
+              setScales((m) => ({ ...m, [key]: max }));
               setDragging(key);
             }}
-            onKeyDown={freeze}
-            onBlur={() => {
-              if (!dragging) unfreeze();
-            }}
+            onKeyDown={() => setScales((m) => (key in m ? m : { ...m, [key]: max }))}
             onChange={(e) => onWeightChange(key, Number(Number.parseFloat(e.target.value).toFixed(2)))}
             className="range range-xs range-primary w-full"
           />
@@ -269,11 +275,11 @@ export function IngredientPanel({
           name={name}
           weight={row.weight_grams}
           onChange={(w) => {
-            setRefWeights((m) => ({ ...m, [key]: w }));
+            rescale(key);
             onWeightChange(key, w);
           }}
-          onFocus={freeze}
-          onBlur={unfreeze}
+          onFocus={() => {}}
+          onBlur={() => {}}
         />
         <span className="text-right text-sm tabular-nums text-base-content/60">
           {pct.toFixed(pct < 1 ? 2 : 1)}%
@@ -323,9 +329,9 @@ export function IngredientPanel({
         <div className="space-y-0.5">
           <div className="px-2 pt-2 pb-1">
             <p className="text-xs text-base-content/45 leading-snug">
-              Sorted by contribution (%). Sliders start centred (none to double); the green strip
-              under each is the weight range that keeps every target in spec, with the rest of the
-              recipe unchanged.
+              Largest first, as opened. Sliders start centred (none to double); the green strip under
+              each is the weight range that keeps every target and typical-use limit in spec, with the
+              rest of the recipe unchanged.
             </p>
           </div>
           {sortedMix.map(renderRow)}
