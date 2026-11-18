@@ -27,6 +27,17 @@ export function RecipesView() {
   });
 
   const recipes = recipesData?.items ?? [];
+  const [search, setSearch] = useState("");
+  // Match every word against the name, notes and ingredient names.
+  const words = search.toLowerCase().split(/\s+/).filter(Boolean);
+  const shown = words.length
+    ? recipes.filter((r) => {
+        const text = [r.name, r.description ?? "", ...r.ingredients.map((i) => i.ingredient.name)]
+          .join(" ")
+          .toLowerCase();
+        return words.every((w) => text.includes(w));
+      })
+    : recipes;
 
   async function handleExportAll() {
     setExportAllLoading(true);
@@ -142,11 +153,32 @@ export function RecipesView() {
       )}
 
       {!isLoading && !isError && recipes.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {recipes.map((recipe) => (
-            <RecipeCard key={recipe.id} recipe={recipe} />
-          ))}
-        </div>
+        <>
+          <div className="mb-4 flex items-center gap-3">
+            <input
+              type="search"
+              className="input input-bordered input-sm w-full sm:max-w-sm"
+              placeholder="Search recipes, notes or ingredients…"
+              aria-label="Search recipes"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {words.length > 0 && (
+              <span className="text-xs text-base-content/55 shrink-0">
+                {shown.length} of {recipes.length}
+              </span>
+            )}
+          </div>
+          {shown.length === 0 ? (
+            <p className="py-8 text-center text-sm text-base-content/55">No recipes match “{search}”.</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {shown.map((recipe) => (
+                <RecipeCard key={recipe.id} recipe={recipe} />
+              ))}
+            </div>
+          )}
+        </>
       )}
 
       {/* File upload modal */}

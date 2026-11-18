@@ -89,7 +89,7 @@ export function fetchCategories(): Promise<IngredientCategory[]> {
 // --- Recipes ---
 
 export function fetchRecipes(): Promise<{ total: number; items: Recipe[] }> {
-    return request("/recipes");
+    return request("/recipes?limit=200");
 }
 
 export function fetchRecipe(id: string): Promise<Recipe> {
