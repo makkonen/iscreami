@@ -15,7 +15,7 @@ const METRIC_UNITS: Record<string, string> = {
 };
 
 const METRIC_TOOLTIPS: Record<string, string> = {
-  pac: `${TOOLTIPS.pacMix}\n\nThe target range is the PAC that gives this profile's serving temperature for this mix.`,
+  pac: `${TOOLTIPS.pacMix}\n\nThe target range is the PAC that gives the right firmness for how this recipe is served.`,
   total_solids: TOOLTIPS.totalSolids,
   total_fat: TOOLTIPS.totalFat,
   milk_fat: TOOLTIPS.milkFat,
@@ -28,71 +28,6 @@ const METRIC_TOOLTIPS: Record<string, string> = {
     "Share of the water frozen at the serving method's eating temperature (e.g. about −9 °C after a Creami ice cream spin). Scoopable is about 75%; soft serve and a fresh Creami spin are softer, popsicles firmer.",
   sweetness: TOOLTIPS.sweetness,
   serving_temp: TOOLTIPS.servingTemp,
-};
-
-// ─── Beginner-friendly hints ──────────────────────────────────────────────────
-
-const HINTS: Record<string, Partial<Record<MetricStatus, string>>> = {
-  pac: {
-    in_range: "Right softness at this profile's serving temperature",
-    below: "Low PAC — will be too hard at serving temperature",
-    above: "High PAC — will be too soft at serving temperature",
-  },
-  frozen_pct: {
-    in_range: "Right firmness for how it's served",
-    below: "Too soft when eaten — needs less PAC",
-    above: "Too firm when eaten — needs more PAC (or a re-spin)",
-  },
-  protein: {
-    in_range: "On target for this style",
-    below: "Below the protein target",
-    above: "Very high protein — watch for a chalky or rubbery texture",
-  },
-  total_solids: {
-    in_range: "Great body and texture for scooping",
-    below: "Low solids — may freeze rock-hard or be icy",
-    above: "High solids — risk of dense or pasty texture",
-  },
-  total_fat: {
-    in_range: "Great creaminess and mouthfeel",
-    below: "Low fat — may taste less creamy or feel icy",
-    above: "High fat — risk of greasy or heavy texture",
-  },
-  milk_fat: {
-    in_range: "Classic dairy richness",
-    below: "Low milk fat — less milky flavour and creaminess",
-    above: "Very high milk fat — may taste heavy",
-  },
-  sugar: {
-    in_range: "Good balance of sweetness and freeze",
-    below: "Low sugar — will freeze too hard at serving temp",
-    above: "High sugar — ice cream may be too soft",
-  },
-  msnf: {
-    in_range: "Good body and protein structure",
-    below: "Low MSNF — less body, more likely to be icy",
-    above: "High MSNF — risk of sandy or gritty texture",
-  },
-  stabilizer: {
-    in_range: "Good stability — won't melt too fast",
-    below: "Low stabilizer — may melt quickly or be unstable",
-    above: "High stabilizer — could feel gummy",
-  },
-  emulsifier: {
-    in_range: "Good fat distribution throughout the mix",
-    below: "Low emulsifier — fat may not incorporate evenly",
-    above: "High emulsifier — double-check your quantities",
-  },
-  sweetness: {
-    in_range: "Well-balanced sweetness level for this style",
-    below: "Lower sweetness than target — may taste flat or less satisfying",
-    above: "Higher sweetness than target — may taste cloying",
-  },
-  serving_temp: {
-    in_range: "Good freeze — roughly 75% water frozen at serving temp",
-    below: "High PAC mix — may not freeze hard enough at a typical serving temp",
-    above: "Low PAC mix — may freeze too hard and be difficult to scoop",
-  },
 };
 
 // ─── Status config ────────────────────────────────────────────────────────────
@@ -219,10 +154,9 @@ export function MetricCards({ comparisons, freezeMetric }: MetricCardsProps) {
         const label = METRIC_LABELS[c.metric] ?? c.metric;
         const unit = inF ? "°F" : (METRIC_UNITS[c.metric] ?? "%");
         const cfg = STATUS_CONFIG[c.status];
-        const hint = HINTS[c.metric]?.[c.status];
         const range = rangeText(c, unit);
         const hue = hueFor(offTarget(c.value, c.target_min, c.target_max));
-        const tooltip = [METRIC_TOOLTIPS[c.metric] ?? label, hint].filter(Boolean).join("\n\n");
+        const tooltip = METRIC_TOOLTIPS[c.metric] ?? label;
 
         return (
           <div key={c.metric} className="contents">
