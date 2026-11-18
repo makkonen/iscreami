@@ -171,6 +171,7 @@ export function CalculatorView() {
                 <IngredientPanel
                   key={currentRecipe?.id ?? "new"}
                   rows={rows}
+                  comparisons={result?.target_comparison ?? null}
                   onWeightChange={updateWeight}
                   onRemove={removeIngredient}
                 />

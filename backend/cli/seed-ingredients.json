@@ -105,7 +105,8 @@
     "sodium_mg": 0.0,
     "energy_kj_per_100g": 167.4,
     "pac_override": 190.0,
-    "pod_override": 70.0
+    "pod_override": 70.0,
+    "usage_max_pct": 8.0
   },
   {
     "name": "Erythritol",
@@ -118,7 +119,8 @@
     "sodium_mg": 0.0,
     "energy_kj_per_100g": 83.7,
     "pac_override": 280.0,
-    "pod_override": 70.0
+    "pod_override": 70.0,
+    "usage_max_pct": 2.0
   },
   {
     "name": "Inulin",
@@ -222,7 +224,8 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 39340.0,
     "energy_kj_per_100g": 0.0,
-    "pac_override": 590.0
+    "pac_override": 590.0,
+    "usage_max_pct": 0.3
   },
   {
     "name": "Sorbitol",
@@ -378,7 +381,9 @@
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
     "emulsifier_pct": 100.0,
-    "energy_kj_per_100g": 2560.6
+    "energy_kj_per_100g": 2560.6,
+    "usage_min_pct": 0.3,
+    "usage_max_pct": 0.6
   },
   {
     "name": "Gelatin",
@@ -390,7 +395,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.2,
+    "usage_max_pct": 0.6
   },
   {
     "name": "Guar Gum",
@@ -403,7 +410,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.05,
+    "usage_max_pct": 0.3
   },
   {
     "name": "Gum Arabic",
@@ -416,7 +425,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.1,
+    "usage_max_pct": 0.5
   },
   {
     "name": "Iota Carrageenan",
@@ -429,7 +440,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.01,
+    "usage_max_pct": 0.05
   },
   {
     "name": "Kappa Carrageenan",
@@ -442,7 +455,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.01,
+    "usage_max_pct": 0.05
   },
   {
     "name": "Lambda Carrageenan",
@@ -455,7 +470,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.01,
+    "usage_max_pct": 0.05
   },
   {
     "name": "Locust Bean Gum",
@@ -468,7 +485,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.05,
+    "usage_max_pct": 0.3
   },
   {
     "name": "Neutro",
@@ -480,7 +499,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.3,
+    "usage_max_pct": 0.5
   },
   {
     "name": "Sodium Alginate",
@@ -493,7 +514,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.05,
+    "usage_max_pct": 0.25
   },
   {
     "name": "Sodium Carboxymethyl Cellulose (CMC)",
@@ -506,7 +529,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.05,
+    "usage_max_pct": 0.3
   },
   {
     "name": "Tapioca Starch",
@@ -531,7 +556,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.05,
+    "usage_max_pct": 0.3
   },
   {
     "name": "Xanthan Gum",
@@ -544,7 +571,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "energy_kj_per_100g": 0.0,
+    "usage_min_pct": 0.02,
+    "usage_max_pct": 0.2
   },
   {
     "name": "Soy Lecithin",
@@ -556,7 +585,9 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "emulsifier_pct": 100.0,
-    "energy_kj_per_100g": 3138.0
+    "energy_kj_per_100g": 3138.0,
+    "usage_min_pct": 0.1,
+    "usage_max_pct": 0.5
   },
   {
     "name": "Sunflower Lecithin",
@@ -568,6 +599,8 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "emulsifier_pct": 100.0,
-    "energy_kj_per_100g": 3267.7
+    "energy_kj_per_100g": 3267.7,
+    "usage_min_pct": 0.1,
+    "usage_max_pct": 0.5
   }
 ]

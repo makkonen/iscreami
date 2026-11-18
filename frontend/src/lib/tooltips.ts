@@ -45,6 +45,8 @@ export const TOOLTIPS = {
     saveRecipe: "Save your current recipe for future use",
     servingMethod:
         "How you'll serve it sets the freezing target: the temperature it's eaten at and how frozen it should be then. A Creami spin warms a −18 °C pint to about −9 °C (lite about −7 °C) and is eaten soft; scooped servings aim for about 75% frozen; popsicles firmer. Saved with the recipe.",
+    usageLimits:
+        "How much of this ingredient a recipe normally uses, as % of the whole mix — e.g. salt up to 0.3%, gums a few tenths of a percent. Used as guardrails for the in-spec slider band (and balancing), since taste and texture limits aren't captured by the profile.",
     deleteRecipe: "Delete the currently open recipe",
     revertRecipe: "Discard unsaved changes and go back to the saved recipe",
 };

@@ -44,6 +44,8 @@ type FormFields = {
   emulsifier_pct: string;
   pac_override: string;
   pod_override: string;
+  usage_min_pct: string;
+  usage_max_pct: string;
   aliases: string;
 };
 
@@ -76,6 +78,8 @@ const EMPTY: FormFields = {
   emulsifier_pct: "",
   pac_override: "",
   pod_override: "",
+  usage_min_pct: "",
+  usage_max_pct: "",
   aliases: "",
 };
 
@@ -110,6 +114,8 @@ function toForm(ing: Ingredient): FormFields {
     emulsifier_pct: s(ing.emulsifier_pct),
     pac_override: s(ing.pac_override),
     pod_override: s(ing.pod_override),
+    usage_min_pct: s(ing.usage_min_pct),
+    usage_max_pct: s(ing.usage_max_pct),
     aliases: ing.aliases.join(", "),
   };
 }
@@ -328,6 +334,24 @@ export function IngredientFormModal({ open, ingredient, onClose }: Readonly<Prop
                 onChange={fieldChange("emulsifier_pct")}
                 error={errors.emulsifier_pct}
                 tooltip={TOOLTIPS.emulsifier}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <NumField
+                label="Typical use, min"
+                unit="% of mix"
+                value={form.usage_min_pct}
+                onChange={fieldChange("usage_min_pct")}
+                error={errors.usage_min_pct}
+                tooltip={TOOLTIPS.usageLimits}
+              />
+              <NumField
+                label="Typical use, max"
+                unit="% of mix"
+                value={form.usage_max_pct}
+                onChange={fieldChange("usage_max_pct")}
+                error={errors.usage_max_pct}
+                tooltip={TOOLTIPS.usageLimits}
               />
             </div>
             <label className="form-control">

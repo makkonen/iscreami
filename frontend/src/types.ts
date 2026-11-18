@@ -90,6 +90,8 @@ export const IngredientInputSchema = z.object({
     emulsifier_pct: numericNullable,
     pac_override: numericNullable,
     pod_override: numericNullable,
+    usage_min_pct: numericNullable,
+    usage_max_pct: numericNullable,
     aliases: z.preprocess(
         (val) => {
             if (Array.isArray(val)) return val;
@@ -135,6 +137,9 @@ export interface Ingredient {
     emulsifier_pct: number | null;
     pac_override: number | null;
     pod_override: number | null;
+    /** Typical use as % of the whole mix. */
+    usage_min_pct?: number | null;
+    usage_max_pct?: number | null;
     aliases: string[];
     pac: number;
     pod: number;

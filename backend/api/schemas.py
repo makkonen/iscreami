@@ -79,6 +79,10 @@ class IngredientBase(BaseModel):
     pac_override: float | None = None
     pod_override: float | None = None
 
+    # Typical use, % of the whole mix
+    usage_min_pct: float | None = Field(default=None, ge=0, le=100)
+    usage_max_pct: float | None = Field(default=None, ge=0, le=100)
+
     aliases: list[str] = Field(default_factory=list, max_length=50)
 
     @field_validator("aliases")

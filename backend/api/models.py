@@ -95,6 +95,11 @@ class Ingredient(Base):
     pac_override: Mapped[float | None] = mapped_column(Numeric(10, 4))
     pod_override: Mapped[float | None] = mapped_column(Numeric(10, 4))
 
+    # Typical use as % of the whole mix (e.g. salt up to 0.3%). Guardrails for
+    # the in-spec weight band and balancing, beyond what the profile judges.
+    usage_min_pct: Mapped[float | None] = mapped_column(Numeric(6, 3))
+    usage_max_pct: Mapped[float | None] = mapped_column(Numeric(6, 3))
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
