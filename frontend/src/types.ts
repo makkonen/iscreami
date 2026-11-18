@@ -346,6 +346,7 @@ export interface BalanceRequest {
     serving_method?: string | null;
     goal: BalanceGoal;
     allow_big_changes?: boolean;
+    keep_batch_size?: boolean;
     ingredients: { ingredient_id: string; weight_grams: number; is_addin: boolean; locked: boolean }[];
 }
 

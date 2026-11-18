@@ -104,12 +104,13 @@ export function inSpecBand(
   const others = rows.reduce((t, r, j) => (j === index || r.weight_grams <= 0 ? t : t + r.weight_grams), 0);
   const asWeight = (pct: number) => (pct >= 100 ? Infinity : ((pct / 100) * others) / (1 - pct / 100));
   const { usage_min_pct: umin, usage_max_pct: umax } = self.ingredient;
+  // They never exclude the weight the recipe already uses: that amount works.
   if (umin != null && umin > 0) {
-    lo = Math.max(lo, asWeight(umin));
+    lo = Math.max(lo, Math.min(asWeight(umin), self.weight_grams));
     constrained = true;
   }
   if (umax != null) {
-    hi = Math.min(hi, asWeight(umax));
+    hi = Math.min(hi, Math.max(asWeight(umax), self.weight_grams));
     constrained = true;
   }
 

@@ -428,6 +428,8 @@ class BalanceRequest(BaseModel):
     goal: BalanceGoal = BalanceGoal.closest
     # By default each ingredient stays within half to double its weight.
     allow_big_changes: bool = False
+    # By default the batch may move by up to 15% (per-100 g goals keep it).
+    keep_batch_size: bool = False
     ingredients: list[BalanceIngredientInput] = Field(
         min_length=1, max_length=MAX_RECIPE_INGREDIENTS
     )

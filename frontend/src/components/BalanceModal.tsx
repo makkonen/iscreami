@@ -18,7 +18,7 @@ interface BalanceModalProps {
   readonly rows: RecipeRow[];
   readonly lockedKeys: ReadonlySet<string>;
   readonly current: CalculateResponse | null;
-  readonly onRun: (goal: BalanceGoal, allowBigChanges: boolean) => Promise<BalanceResponse>;
+  readonly onRun: (goal: BalanceGoal, allowBigChanges: boolean, keepBatchSize: boolean) => Promise<BalanceResponse>;
   readonly onApply: (proposal: BalanceResponse) => void;
   readonly onClose: () => void;
 }
@@ -30,6 +30,9 @@ function fmtG(w: number): string {
 export function BalanceModal({ rows, lockedKeys, current, onRun, onApply, onClose }: BalanceModalProps) {
   const [goal, setGoal] = useState<BalanceGoal>("closest");
   const [allowBig, setAllowBig] = useState(false);
+  const [keepBatch, setKeepBatch] = useState(false);
+  // Calories and protein are per 100 g, so those goals always keep the batch size.
+  const perHundredGrams = goal === "min_kcal" || goal === "max_protein";
   const [proposal, setProposal] = useState<BalanceResponse | null>(null);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +42,7 @@ export function BalanceModal({ rows, lockedKeys, current, onRun, onApply, onClos
     setRunning(true);
     setError(null);
     try {
-      setProposal(await onRun(goal, allowBig));
+      setProposal(await onRun(goal, allowBig, keepBatch || perHundredGrams));
     } catch (e) {
       setProposal(null);
       setError(e instanceof Error ? e.message : "Balancing failed.");
@@ -68,8 +71,8 @@ export function BalanceModal({ rows, lockedKeys, current, onRun, onApply, onClos
         </div>
 
         <p className="text-sm text-base-content/60 mb-3">
-          Adjusts the unlocked mix ingredients to bring every target into range, keeping the batch size.
-          Add-ins and locked rows aren&apos;t changed.
+          Adjusts the unlocked mix ingredients to bring every target into range. Add-ins and locked rows
+          aren&apos;t changed.
         </p>
 
         <fieldset className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
@@ -110,6 +113,27 @@ export function BalanceModal({ rows, lockedKeys, current, onRun, onApply, onClos
             <span className="block text-xs text-base-content/55">
               Normally each ingredient stays between half and double its weight so the recipe keeps its
               character. Typical-use limits always apply.
+            </span>
+          </span>
+        </label>
+
+        <label className="flex items-start gap-2 text-sm mb-4 cursor-pointer">
+          <input
+            type="checkbox"
+            className="checkbox checkbox-xs mt-0.5"
+            checked={keepBatch || perHundredGrams}
+            disabled={perHundredGrams}
+            onChange={(e) => {
+              setKeepBatch(e.target.checked);
+              setProposal(null);
+            }}
+          />
+          <span>
+            Keep the batch size the same
+            <span className="block text-xs text-base-content/55">
+              {perHundredGrams
+                ? "Always kept for this goal, since it's measured per 100 g."
+                : "Otherwise the batch may grow or shrink by up to 15%, so a fix can simply add a little of something."}
             </span>
           </span>
         </label>
@@ -167,9 +191,11 @@ export function BalanceModal({ rows, lockedKeys, current, onRun, onApply, onClos
             </div>
 
             {proposal.unmet.length === 0 ? (
-              <div className="alert alert-success text-sm py-2">Every target is in range.</div>
+              <div className="rounded-lg border border-success/50 bg-success/10 px-3 py-2 text-sm text-base-content">
+                Every target is in range.
+              </div>
             ) : (
-              <div className="alert alert-warning text-sm py-2 block">
+              <div className="rounded-lg border border-warning/50 bg-warning/10 px-3 py-2 text-sm text-base-content">
                 <p className="font-medium">Couldn&apos;t meet every target with these ingredients:</p>
                 <ul className="mt-1 list-disc list-inside">
                   {proposal.unmet.map((u) => (

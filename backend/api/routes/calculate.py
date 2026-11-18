@@ -136,7 +136,12 @@ def balance_recipe(data: BalanceRequest, db: DbSession):
     rows = [BalanceRow(found[i.ingredient_id], i.weight_grams, i.locked) for i in mix]
     try:
         balanced = balance(
-            rows, profile, data.serving_method, data.goal, data.allow_big_changes
+            rows,
+            profile,
+            data.serving_method,
+            data.goal,
+            data.allow_big_changes,
+            data.keep_batch_size,
         )
     except BalanceError as e:
         raise HTTPException(422, str(e)) from e

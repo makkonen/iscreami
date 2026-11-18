@@ -106,7 +106,7 @@
     "energy_kj_per_100g": 167.4,
     "pac_override": 190.0,
     "pod_override": 70.0,
-    "usage_max_pct": 8.0
+    "usage_max_pct": 12.0
   },
   {
     "name": "Erythritol",

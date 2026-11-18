@@ -194,13 +194,14 @@ export function useRecipeCalculator() {
     }, []);
 
     const requestBalance = useCallback(
-        (goal: BalanceGoal, allowBigChanges: boolean): Promise<BalanceResponse> =>
+        (goal: BalanceGoal, allowBigChanges: boolean, keepBatchSize: boolean): Promise<BalanceResponse> =>
             balanceRecipe({
                 target_profile_id: profile?.id ?? null,
                 suggest_profile: !profile,
                 serving_method: servingMethod,
                 goal,
                 allow_big_changes: allowBigChanges,
+                keep_batch_size: keepBatchSize,
                 ingredients: rows.map((r) => ({
                     ingredient_id: r.ingredient.id,
                     weight_grams: r.weight_grams,
