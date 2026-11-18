@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CornerDownRight, CornerUpLeft, Lock, LockOpen, Trash2 } from "lucide-react";
+import { ArrowDownWideNarrow, CornerDownRight, CornerUpLeft, Lock, LockOpen, Trash2 } from "lucide-react";
 import { rowKey, type RecipeRow } from "../hooks/useRecipeCalculator";
 import type { MetricComparison } from "../types";
 import { inSpecBand, type WeightBand } from "../lib/inSpec";
@@ -70,19 +70,24 @@ interface WeightInputProps {
 /** Keeps the typed text while focused (so "0." survives) and shows the live weight otherwise. */
 function WeightInput({ name, weight, onChange, onFocus, onBlur }: WeightInputProps) {
   const [draft, setDraft] = useState<string | null>(null);
+  const [focused, setFocused] = useState(false);
   return (
     <input
       type="number"
       min={0}
       // Arrow keys nudge in steps that suit the amount: 0.01 g for gums and salt, 1 g for cream.
       step={weight < 3 ? 0.01 : weight < 10 ? 0.1 : 1}
-      value={draft ?? fmtWeight(weight)}
+      // Typed text only shows while editing; otherwise the box always shows the
+      // real weight (e.g. after Revert, Balance or scaling).
+      value={focused && draft != null ? draft : fmtWeight(weight)}
       aria-label={`Weight for ${name} in grams`}
       onFocus={() => {
+        setFocused(true);
         setDraft(fmtWeight(weight));
         onFocus();
       }}
       onBlur={() => {
+        setFocused(false);
         setDraft(null);
         onBlur();
       }}
@@ -125,6 +130,13 @@ export function IngredientPanel({
       start: { ...seen.start, ...Object.fromEntries(fresh.map((r) => [rowKey(r), r.weight_grams])) },
     });
   }
+
+  // Re-sort on request (largest first), keeping the order stable otherwise.
+  const sortByAmount = () =>
+    setSeen((cur) => ({
+      ...cur,
+      order: [...rows].sort((a, b) => b.weight_grams - a.weight_grams).map(rowKey),
+    }));
 
   // Each slider's scale, fixed once you touch it, so it doesn't jump when you
   // let go. It's recomputed only after a drag ends near either end of the
@@ -327,12 +339,20 @@ export function IngredientPanel({
 
       {mixRows.length > 0 && (
         <div className="space-y-0.5">
-          <div className="px-2 pt-2 pb-1">
+          <div className="px-2 pt-2 pb-1 flex items-start justify-between gap-3">
             <p className="text-xs text-base-content/45 leading-snug">
               Largest first, as opened. Sliders start centred (none to double); the green strip under
               each is the weight range that keeps every target and typical-use limit in spec, with the
               rest of the recipe unchanged.
             </p>
+            <button
+              type="button"
+              className="btn btn-ghost btn-xs shrink-0 gap-1 text-base-content/60"
+              onClick={sortByAmount}
+              title="Re-sort largest first"
+            >
+              <ArrowDownWideNarrow size={13} /> Sort
+            </button>
           </div>
           {sortedMix.map(renderRow)}
         </div>
