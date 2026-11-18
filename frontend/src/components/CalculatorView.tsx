@@ -178,7 +178,7 @@ export function CalculatorView() {
 
       {/* Content area */}
       <div className="max-w-7xl mx-auto px-4 pt-3">
-        <div className="grid grid-cols-1 lg:grid-cols-[540px_1fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[600px_1fr] gap-6">
           {/* Left: Ingredient Panel */}
           <div>
             <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4">

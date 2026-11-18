@@ -278,7 +278,7 @@ export function IngredientPanel({
     return (
       <div className={`${GRID} gap-y-1 items-center px-2 py-1.5 rounded hover:bg-base-200/50`}>
         <div className="min-w-0">
-          <span className="text-sm font-medium truncate flex items-center gap-1" title={name}>
+          <span className="text-sm font-medium flex items-start gap-1" title={name}>
             <button
               type="button"
               ref={handle.ref}
@@ -302,7 +302,7 @@ export function IngredientPanel({
                 {lockedKeys.has(key) ? <Lock size={12} /> : <LockOpen size={12} />}
               </button>
             )}
-            <span className="truncate">{name}</span>
+            <span className="min-w-0 break-words leading-snug">{name}</span>
           </span>
           {row.ingredient.category && (
             <span className="text-xs text-base-content/40">{row.ingredient.category.name}</span>
