@@ -25,6 +25,11 @@ const METRIC_ORDER = [
   "emulsifier",
 ];
 
+/** Whether a comparison has any target to be judged against. */
+export function isTargeted(c: MetricComparison): boolean {
+  return c.target_min != null || c.target_max != null;
+}
+
 /** The comparisons actually shown, in display order. */
 export function visibleComparisons(
   comparisons: MetricComparison[],

@@ -78,7 +78,8 @@ interface GaugeBarProps {
 }
 
 function GaugeBar({ value, targetMin, targetMax, hue }: GaugeBarProps) {
-  if (targetMin == null && targetMax == null) return null;
+  // No target for this style: keep the grid cell so the row stays aligned.
+  if (targetMin == null && targetMax == null) return <div aria-hidden="true" />;
 
   // Build a scale that comfortably contains both the target zone and the current value.
   // The padding ensures neither the zone nor the marker sits right at the track edge.
@@ -154,7 +155,8 @@ export function MetricCards({ comparisons, freezeMetric }: MetricCardsProps) {
         const label = METRIC_LABELS[c.metric] ?? c.metric;
         const unit = inF ? "°F" : (METRIC_UNITS[c.metric] ?? "%");
         const cfg = STATUS_CONFIG[c.status];
-        const range = rangeText(c, unit);
+        const untargeted = c.target_min == null && c.target_max == null;
+        const range = untargeted ? "no target" : rangeText(c, unit);
         const hue = hueFor(offTarget(c.value, c.target_min, c.target_max));
         const tooltip = METRIC_TOOLTIPS[c.metric] ?? label;
 
@@ -166,7 +168,11 @@ export function MetricCards({ comparisons, freezeMetric }: MetricCardsProps) {
             </div>
             <GaugeBar value={c.value} targetMin={c.target_min} targetMax={c.target_max} hue={hue} />
             <span
-              className="text-sm font-bold tabular-nums text-right transition-colors duration-150 text-[hsl(var(--hue)_70%_35%)] dark:text-[hsl(var(--hue)_80%_65%)]"
+              className={`text-sm font-bold tabular-nums text-right transition-colors duration-150 ${
+                untargeted
+                  ? "text-base-content/70"
+                  : "text-[hsl(var(--hue)_70%_35%)] dark:text-[hsl(var(--hue)_80%_65%)]"
+              }`}
               style={{ "--hue": hue } as CSSProperties}
             >
               <span className="sr-only">{cfg.label}: </span>

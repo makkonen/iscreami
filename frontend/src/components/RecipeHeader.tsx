@@ -5,6 +5,7 @@ import { TOOLTIPS } from "../lib/tooltips";
 import { InfoIcon } from "./InfoIcon";
 import { fmtEnergy } from "../lib/formatting";
 import { servingGroups, withServing } from "../lib/serving";
+import { isTargeted } from "../lib/metrics";
 
 interface StatusPill {
   label: string;
@@ -15,7 +16,7 @@ interface StatusPill {
 function getBalancePill(result: CalculateResponse | null): StatusPill {
   // PAC, % frozen and serving temperature are the same judgement; count it once.
   const comparisons = result?.target_comparison?.filter(
-    (c) => c.metric !== "serving_temp" && c.metric !== "frozen_pct",
+    (c) => c.metric !== "serving_temp" && c.metric !== "frozen_pct" && isTargeted(c),
   );
   if (!comparisons || comparisons.length === 0) {
     return {

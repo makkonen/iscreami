@@ -11,7 +11,7 @@ import { FreezingSection } from "./FreezingSection";
 import { IngredientPanel } from "./IngredientPanel";
 import { IngredientSearch } from "./IngredientSearch";
 import { MetricCards } from "./MetricCards";
-import { FREEZE_METRIC_LABELS, type FreezeMetric, visibleComparisons } from "../lib/metrics";
+import { FREEZE_METRIC_LABELS, type FreezeMetric, isTargeted, visibleComparisons } from "../lib/metrics";
 import { withServing } from "../lib/serving";
 import { NutritionTable } from "./NutritionTable";
 import { RecipeHeader } from "./RecipeHeader";
@@ -233,8 +233,8 @@ export function CalculatorView() {
                       <div className="flex items-center gap-3">
                         <span className="text-xs tabular-nums text-base-content/60">
                           {loading && <span className="loading loading-dots loading-xs mr-2 align-middle" />}
-                          {shownComparisons.filter((c) => c.status === "in_range").length}/
-                          {shownComparisons.length} in range
+                          {shownComparisons.filter((c) => isTargeted(c) && c.status === "in_range").length}/
+                          {shownComparisons.filter(isTargeted).length} in range
                         </span>
                         <div className="join" role="group" aria-label="Show freezing as">
                           {(Object.keys(FREEZE_METRIC_LABELS) as FreezeMetric[]).map((m) => (
