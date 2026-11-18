@@ -37,6 +37,7 @@ export function CalculatorView() {
     updateWeight,
     removeIngredient,
     toggleAddin,
+    setWeights,
     loadRecipe,
     revertRecipe,
     saveAsNewRecipe,
@@ -176,6 +177,7 @@ export function CalculatorView() {
                   onWeightChange={updateWeight}
                   onRemove={removeIngredient}
                   onToggleAddin={toggleAddin}
+                  onSetWeights={setWeights}
                 />
               </div>
             </div>

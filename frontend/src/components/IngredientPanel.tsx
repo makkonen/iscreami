@@ -12,6 +12,8 @@ interface IngredientPanelProps {
   readonly onRemove: (key: string) => void;
   /** Move a row between the mix and the add-ins. */
   readonly onToggleAddin: (key: string) => void;
+  /** Set several weights at once, keyed by row (used to scale the batch). */
+  readonly onSetWeights: (weights: Record<string, number>) => void;
 }
 
 interface IngredientRowWithPct {
@@ -96,6 +98,7 @@ export function IngredientPanel({
   onWeightChange,
   onRemove,
   onToggleAddin,
+  onSetWeights,
 }: IngredientPanelProps) {
   // While a weight is being dragged or typed, keep the row order and the
   // slider's scale fixed so nothing jumps out from under the cursor.
@@ -137,6 +140,34 @@ export function IngredientPanel({
       });
   const sortedMix = withPct(mixRows);
   const sortedAddins = withPct(addinRows);
+
+  // Batch size: scales every row (add-ins too) from the weights captured when
+  // the drag or edit began, so repeated scaling doesn't drift. The slider runs
+  // 0 to double the mix and re-centres on release.
+  const [scaleBase, setScaleBase] = useState<{ mix: number; weights: Record<string, number> } | null>(null);
+  const beginScale = () => {
+    if (scaleBase || mixWeight <= 0) return scaleBase;
+    const base = { mix: mixWeight, weights: Object.fromEntries(rows.map((r) => [rowKey(r), r.weight_grams])) };
+    setScaleBase(base);
+    return base;
+  };
+  const scaleTo = (targetMix: number) => {
+    const base = scaleBase ?? beginScale();
+    if (!base || base.mix <= 0) return;
+    const f = Math.max(0, targetMix) / base.mix;
+    onSetWeights(Object.fromEntries(Object.entries(base.weights).map(([k, w]) => [k, Number((w * f).toFixed(2))])));
+  };
+  useEffect(() => {
+    if (!scaleBase) return;
+    const end = () => setScaleBase(null);
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return () => {
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+    };
+  }, [scaleBase]);
+  const scaleMax = (scaleBase?.mix ?? mixWeight) * 2;
 
   const freeze = () => {
     setFrozenOrder((cur) => cur ?? [...sortedMix, ...sortedAddins].map((r) => r.key));
@@ -284,12 +315,31 @@ export function IngredientPanel({
         </div>
       )}
 
-      {/* Mix total */}
+      {/* Mix total: drag or type to scale the whole batch */}
       {mixRows.length > 0 && (
-        <div className={`${GRID} px-2 py-2 border-t border-base-200 mt-2 rounded-md bg-base-200/30`}>
+        <div className={`${GRID} gap-y-1 items-center px-2 py-2 border-t border-base-200 mt-2 rounded-md bg-base-200/30`}>
           <span className="text-sm font-semibold">Mix</span>
-          <span className="hidden sm:block" />
-          <span className="text-right text-sm font-semibold tabular-nums">{mixWeight.toFixed(0)}</span>
+          <div className="flex items-center order-last col-span-full sm:order-none sm:col-span-1">
+            <input
+              type="range"
+              min={0}
+              max={scaleMax}
+              step={Math.max(1, niceCeil(scaleMax / 1000))}
+              value={Math.min(mixWeight, scaleMax)}
+              aria-label="Scale the whole batch"
+              title="Scale every ingredient (add-ins too); 0 to double, re-centres when you let go"
+              onPointerDown={() => beginScale()}
+              onChange={(e) => scaleTo(Number(e.target.value))}
+              className="range range-xs w-full"
+            />
+          </div>
+          <WeightInput
+            name="the whole mix"
+            weight={Math.round(mixWeight)}
+            onChange={(w) => scaleTo(w)}
+            onFocus={() => beginScale()}
+            onBlur={() => setScaleBase(null)}
+          />
           <span className="text-right text-sm font-semibold">100%</span>
           <span></span>
           <span></span>

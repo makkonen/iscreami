@@ -172,6 +172,21 @@ export function useRecipeCalculator() {
         [profile, triggerCalculate]
     );
 
+    // Set several weights at once (e.g. scaling the whole batch), keyed by row.
+    const setWeights = useCallback(
+        (weights: Record<string, number>) => {
+            setRows((prev) => {
+                const next = prev.map((r) => {
+                    const w = weights[rowKey(r)];
+                    return w === undefined ? r : { ...r, weight_grams: w };
+                });
+                triggerCalculate(next, profile);
+                return next;
+            });
+        },
+        [profile, triggerCalculate]
+    );
+
     // Move a row between the mix and the add-ins; if the ingredient is already
     // in the other section, the weights are combined.
     const toggleAddin = useCallback(
@@ -340,6 +355,7 @@ export function useRecipeCalculator() {
         updateWeight,
         removeIngredient,
         toggleAddin,
+        setWeights,
         changeProfile,
         changeServingMethod,
         loadRecipe,
