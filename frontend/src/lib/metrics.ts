@@ -41,3 +41,19 @@ export function visibleComparisons(
     .filter((c) => !freezing.includes(c.metric) || c.metric === shown)
     .sort((a, b) => rank(a.metric) - rank(b.metric));
 }
+
+/** Display names for comparison metrics. */
+export const METRIC_LABELS: Record<string, string> = {
+  pac: "PAC",
+  frozen_pct: "Frozen when eaten",
+  protein: "Protein",
+  total_solids: "Total Solids",
+  total_fat: "Total Fat",
+  milk_fat: "Milk Fat",
+  sugar: "Sugars",
+  msnf: "MSNF",
+  stabilizer: "Stabilizer",
+  emulsifier: "Emulsifier",
+  sweetness: "Sweetness (POD)",
+  serving_temp: "75% frozen at",
+};

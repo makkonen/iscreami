@@ -398,3 +398,52 @@ class HealthResponse(BaseModel):
     """Health check response."""
 
     status: str
+
+
+# --- Balancing ---
+
+
+class BalanceGoal(StrEnum):
+    """What the balancer optimises once targets are met."""
+
+    closest = "closest"  # change as little as possible
+    centred = "centred"  # sit as close to the middle of each range as possible
+    min_kcal = "min_kcal"  # fewest calories
+    max_protein = "max_protein"  # most protein
+
+
+class BalanceIngredientInput(BaseModel):
+    ingredient_id: uuid.UUID
+    weight_grams: float = Field(ge=0)
+    is_addin: bool = False
+    # Keep this weight as it is.
+    locked: bool = False
+
+
+class BalanceRequest(BaseModel):
+    target_profile_id: uuid.UUID | None = None
+    # With no target_profile_id, balance against the best-fitting profile.
+    suggest_profile: bool = True
+    serving_method: str | None = Field(default=None, max_length=50)
+    goal: BalanceGoal = BalanceGoal.closest
+    # By default each ingredient stays within half to double its weight.
+    allow_big_changes: bool = False
+    ingredients: list[BalanceIngredientInput] = Field(
+        min_length=1, max_length=MAX_RECIPE_INGREDIENTS
+    )
+
+
+class BalancedIngredient(BaseModel):
+    ingredient_id: uuid.UUID
+    is_addin: bool
+    weight_grams: float
+
+
+class BalanceResponse(BaseModel):
+    profile_id: uuid.UUID
+    # Every ingredient, in request order; add-ins and locked rows unchanged.
+    ingredients: list[BalancedIngredient]
+    # Targets the balancer couldn't meet with the ingredients available.
+    unmet: list[MetricComparison]
+    # Full analysis of the balanced recipe (add-ins included in nutrition).
+    result: CalculateResponse

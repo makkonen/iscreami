@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { CalculateResponse, Ingredient, Recipe, TargetProfile } from "../types";
-import { calculate, createRecipe, updateRecipe as apiUpdateRecipe, deleteRecipe as apiDeleteRecipe } from "../api";
+import type { BalanceGoal, BalanceResponse, CalculateResponse, Ingredient, Recipe, TargetProfile } from "../types";
+import {
+    balanceRecipe,
+    calculate,
+    createRecipe,
+    updateRecipe as apiUpdateRecipe,
+    deleteRecipe as apiDeleteRecipe,
+} from "../api";
 import { useToast } from "./useToast";
 import { errorMessage } from "../lib/errors";
 
@@ -15,7 +21,11 @@ export interface RecipeRow {
 
 /** Rows are identified by ingredient and section: an ingredient can be in both. */
 export function rowKey(row: Pick<RecipeRow, "ingredient" | "is_addin">): string {
-    return `${row.ingredient.id}:${row.is_addin ? "addin" : "mix"}`;
+    return keyFor(row.ingredient.id, row.is_addin);
+}
+
+export function keyFor(ingredientId: string, isAddin: boolean): string {
+    return `${ingredientId}:${isAddin ? "addin" : "mix"}`;
 }
 
 interface RecipeIngredientInput {
@@ -172,6 +182,35 @@ export function useRecipeCalculator() {
         [profile, triggerCalculate]
     );
 
+    // Rows the balancer must leave alone. Kept per session, not saved.
+    const [lockedKeys, setLockedKeys] = useState<ReadonlySet<string>>(new Set());
+    const toggleLock = useCallback((key: string) => {
+        setLockedKeys((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+    }, []);
+
+    const requestBalance = useCallback(
+        (goal: BalanceGoal, allowBigChanges: boolean): Promise<BalanceResponse> =>
+            balanceRecipe({
+                target_profile_id: profile?.id ?? null,
+                suggest_profile: !profile,
+                serving_method: servingMethod,
+                goal,
+                allow_big_changes: allowBigChanges,
+                ingredients: rows.map((r) => ({
+                    ingredient_id: r.ingredient.id,
+                    weight_grams: r.weight_grams,
+                    is_addin: r.is_addin,
+                    locked: lockedKeys.has(rowKey(r)),
+                })),
+            }),
+        [rows, profile, servingMethod, lockedKeys]
+    );
+
     // Set several weights at once (e.g. scaling the whole batch), keyed by row.
     const setWeights = useCallback(
         (weights: Record<string, number>) => {
@@ -241,6 +280,7 @@ export function useRecipeCalculator() {
             setCurrentRecipe(recipe);
             setProfile(p);
             setServingMethod(serving);
+            setLockedKeys(new Set());
             triggerCalculate(nextRows, p, serving);
         },
         [triggerCalculate]
@@ -356,6 +396,9 @@ export function useRecipeCalculator() {
         removeIngredient,
         toggleAddin,
         setWeights,
+        lockedKeys,
+        toggleLock,
+        requestBalance,
         changeProfile,
         changeServingMethod,
         loadRecipe,

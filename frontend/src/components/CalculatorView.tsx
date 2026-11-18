@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { IceCreamCone } from "lucide-react";
+import { IceCreamCone, Scale } from "lucide-react";
+import { BalanceModal } from "./BalanceModal";
+import { keyFor } from "../hooks/useRecipeCalculator";
 import { fetchProfiles, fetchRecipe, fetchServingMethods } from "../api";
 import { useRecipeCalculator } from "../hooks/useRecipeCalculator";
 import { CompositionTable } from "./CompositionTable";
@@ -38,6 +40,9 @@ export function CalculatorView() {
     removeIngredient,
     toggleAddin,
     setWeights,
+    lockedKeys,
+    toggleLock,
+    requestBalance,
     loadRecipe,
     revertRecipe,
     saveAsNewRecipe,
@@ -91,6 +96,7 @@ export function CalculatorView() {
   // Recipe UI state
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [balanceOpen, setBalanceOpen] = useState(false);
   const [newRecipeName, setNewRecipeName] = useState("");
 
   useEscape(() => setSaveDialogOpen(false), saveDialogOpen);
@@ -160,13 +166,23 @@ export function CalculatorView() {
           {/* Left: Ingredient Panel */}
           <div>
             <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4">
-              <div className="mb-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-base-content/50">
-                  Ingredients
-                </h2>
-                <p className="mt-1 text-sm text-base-content/55">
-                  Build the mix here.
-                </p>
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-semibold uppercase tracking-wider text-base-content/50">
+                    Ingredients
+                  </h2>
+                  <p className="mt-1 text-sm text-base-content/55">
+                    Build the mix here. Lock rows you want left alone, then balance.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline gap-1 shrink-0"
+                  onClick={() => setBalanceOpen(true)}
+                  disabled={!rows.some((r) => !r.is_addin && r.weight_grams > 0)}
+                >
+                  <Scale size={14} /> Balance
+                </button>
               </div>
               <IngredientSearch onSelect={addIngredient} />
               <div className="mt-4">
@@ -178,6 +194,8 @@ export function CalculatorView() {
                   onRemove={removeIngredient}
                   onToggleAddin={toggleAddin}
                   onSetWeights={setWeights}
+                  lockedKeys={lockedKeys}
+                  onToggleLock={toggleLock}
                 />
               </div>
             </div>
@@ -338,6 +356,24 @@ export function CalculatorView() {
           </div>
         </div>
       </div>
+
+      {balanceOpen && (
+        <BalanceModal
+          rows={rows}
+          lockedKeys={lockedKeys}
+          current={result}
+          onRun={requestBalance}
+          onApply={(proposal) => {
+            setWeights(
+              Object.fromEntries(
+                proposal.ingredients.map((i) => [keyFor(i.ingredient_id, i.is_addin), i.weight_grams]),
+              ),
+            );
+            setBalanceOpen(false);
+          }}
+          onClose={() => setBalanceOpen(false)}
+        />
+      )}
 
       {/* Save-as-new dialog */}
       {saveDialogOpen && (

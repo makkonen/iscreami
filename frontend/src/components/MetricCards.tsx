@@ -2,25 +2,11 @@ import type { CSSProperties } from "react";
 import type { MetricComparison, MetricStatus } from "../types";
 import { InfoIcon } from "./InfoIcon";
 import { TOOLTIPS } from "../lib/tooltips";
-import { type FreezeMetric, visibleComparisons } from "../lib/metrics";
+import { type FreezeMetric, METRIC_LABELS, visibleComparisons } from "../lib/metrics";
 import { cToF } from "../lib/formatting";
 
 // ─── Labels & units ───────────────────────────────────────────────────────────
 
-const METRIC_LABELS: Record<string, string> = {
-  pac: "PAC",
-  frozen_pct: "Frozen when eaten",
-  protein: "Protein",
-  total_solids: "Total Solids",
-  total_fat: "Total Fat",
-  milk_fat: "Milk Fat",
-  sugar: "Sugars",
-  msnf: "MSNF",
-  stabilizer: "Stabilizer",
-  emulsifier: "Emulsifier",
-  sweetness: "Sweetness (POD)",
-  serving_temp: "75% frozen at",
-};
 
 const METRIC_UNITS: Record<string, string> = {
   pac: "",

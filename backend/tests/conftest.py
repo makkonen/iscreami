@@ -45,6 +45,8 @@ def make_ingredient(**kwargs):
         "trans_fat_pct": None,
         "fiber_pct": None,
         "energy_kj_per_100g": None,
+        "usage_min_pct": None,
+        "usage_max_pct": None,
     }
     defaults.update(kwargs)
     mock = MagicMock()

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CornerDownRight, CornerUpLeft, Trash2 } from "lucide-react";
+import { CornerDownRight, CornerUpLeft, Lock, LockOpen, Trash2 } from "lucide-react";
 import { rowKey, type RecipeRow } from "../hooks/useRecipeCalculator";
 import type { MetricComparison } from "../types";
 import { inSpecBand, type WeightBand } from "../lib/inSpec";
@@ -14,6 +14,9 @@ interface IngredientPanelProps {
   readonly onToggleAddin: (key: string) => void;
   /** Set several weights at once, keyed by row (used to scale the batch). */
   readonly onSetWeights: (weights: Record<string, number>) => void;
+  /** Rows the balancer must leave alone. */
+  readonly lockedKeys: ReadonlySet<string>;
+  readonly onToggleLock: (key: string) => void;
 }
 
 interface IngredientRowWithPct {
@@ -99,6 +102,8 @@ export function IngredientPanel({
   onRemove,
   onToggleAddin,
   onSetWeights,
+  lockedKeys,
+  onToggleLock,
 }: IngredientPanelProps) {
   // While a weight is being dragged or typed, keep the row order and the
   // slider's scale fixed so nothing jumps out from under the cursor.
@@ -209,8 +214,20 @@ export function IngredientPanel({
     return (
       <div key={key} className={`${GRID} gap-y-1 items-center px-2 py-1.5 rounded hover:bg-base-200/50`}>
         <div className="min-w-0">
-          <span className="text-sm font-medium truncate block" title={name}>
-            {name}
+          <span className="text-sm font-medium truncate flex items-center gap-1" title={name}>
+            {!row.is_addin && (
+              <button
+                type="button"
+                onClick={() => onToggleLock(key)}
+                className={`shrink-0 ${lockedKeys.has(key) ? "text-primary" : "text-base-content/25 hover:text-base-content/60"}`}
+                aria-label={lockedKeys.has(key) ? `Unlock ${name} for balancing` : `Lock ${name} so balancing leaves it alone`}
+                aria-pressed={lockedKeys.has(key)}
+                title={lockedKeys.has(key) ? "Locked: balancing won't change it" : "Lock so balancing leaves it alone"}
+              >
+                {lockedKeys.has(key) ? <Lock size={12} /> : <LockOpen size={12} />}
+              </button>
+            )}
+            <span className="truncate">{name}</span>
           </span>
           {row.ingredient.category && (
             <span className="text-xs text-base-content/40">{row.ingredient.category.name}</span>

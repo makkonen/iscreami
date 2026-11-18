@@ -1,6 +1,8 @@
 /* API client for communicating with the iscreami backend. */
 
 import type {
+    BalanceRequest,
+    BalanceResponse,
     CalculateRequest,
     CalculateResponse,
     Ingredient,
@@ -142,6 +144,10 @@ export function deleteProfile(id: string): Promise<void> {
 }
 
 // --- Calculator ---
+
+export function balanceRecipe(data: BalanceRequest): Promise<BalanceResponse> {
+    return request("/balance", { method: "POST", body: JSON.stringify(data) });
+}
 
 export function calculate(data: CalculateRequest): Promise<CalculateResponse> {
     return request("/calculate", { method: "POST", body: JSON.stringify(data) });

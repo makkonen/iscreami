@@ -335,3 +335,23 @@ export interface ServingMethod {
     frozen_pct_min: number;
     frozen_pct_max: number;
 }
+
+// --- Balancing ---
+
+export type BalanceGoal = "closest" | "centred" | "min_kcal" | "max_protein";
+
+export interface BalanceRequest {
+    target_profile_id?: string | null;
+    suggest_profile?: boolean;
+    serving_method?: string | null;
+    goal: BalanceGoal;
+    allow_big_changes?: boolean;
+    ingredients: { ingredient_id: string; weight_grams: number; is_addin: boolean; locked: boolean }[];
+}
+
+export interface BalanceResponse {
+    profile_id: string;
+    ingredients: { ingredient_id: string; is_addin: boolean; weight_grams: number }[];
+    unmet: MetricComparison[];
+    result: CalculateResponse;
+}
