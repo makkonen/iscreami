@@ -7,7 +7,7 @@ import type { Ingredient } from "../types";
 import { IngredientFormModal } from "./IngredientFormModal";
 import { useToast } from "../hooks/useToast";
 import { useEscape } from "../hooks/useEscape";
-import { fmt, fmtKj } from "../lib/formatting";
+import { fmt, fmtEnergy } from "../lib/formatting";
 import { InfoIcon } from "./InfoIcon";
 import { TOOLTIPS } from "../lib/tooltips";
 
@@ -319,7 +319,7 @@ export function IngredientsView() {
                     })()}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">
-                    {fmtKj(ing.energy_kj_per_100g)}
+                    {fmtEnergy(ing.energy_kj_per_100g)}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">
                     {fmt(ing.total_solids_pct)}

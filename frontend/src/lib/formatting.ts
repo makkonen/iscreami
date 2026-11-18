@@ -4,10 +4,12 @@ export function fmt(value: number | null | undefined, decimals = 1): string {
     return value.toFixed(decimals);
 }
 
-/** Format a nullable kJ/100g energy value as a string with unit, returning "—" for null. */
-export function fmtKj(value: number | null | undefined): string {
-    if (value === null || value === undefined) return "—";
-    return `${Math.round(value)} kJ`;
+export const KJ_PER_KCAL = 4.184;
+
+/** Energy in both units, e.g. "211 kcal · 882 kJ"; "—" for null. */
+export function fmtEnergy(kj: number | null | undefined): string {
+    if (kj === null || kj === undefined) return "—";
+    return `${Math.round(kj / KJ_PER_KCAL)} kcal · ${Math.round(kj)} kJ`;
 }
 
 export function cToF(c: number): number {

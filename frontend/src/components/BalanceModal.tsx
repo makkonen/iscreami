@@ -5,6 +5,7 @@ import type { RecipeRow } from "../hooks/useRecipeCalculator";
 import { rowKey } from "../hooks/useRecipeCalculator";
 import { METRIC_LABELS } from "../lib/metrics";
 import { useEscape } from "../hooks/useEscape";
+import { KJ_PER_KCAL } from "../lib/formatting";
 
 const GOALS: { id: BalanceGoal; label: string; hint: string }[] = [
   { id: "closest", label: "Change as little as possible", hint: "Fix what's out of range with the smallest edits." },
@@ -12,8 +13,6 @@ const GOALS: { id: BalanceGoal; label: string; hint: string }[] = [
   { id: "min_kcal", label: "Fewest calories", hint: "Stay in range with the lowest energy per 100 g." },
   { id: "max_protein", label: "Most protein", hint: "Stay in range with as much protein as the style allows." },
 ];
-
-const KJ_PER_KCAL = 4.184;
 
 interface BalanceModalProps {
   readonly rows: RecipeRow[];

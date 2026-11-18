@@ -3,6 +3,7 @@ import type { CalculateResponse, ServingMethod, TargetProfile } from "../types";
 import { Tooltip } from "./Tooltip";
 import { TOOLTIPS } from "../lib/tooltips";
 import { InfoIcon } from "./InfoIcon";
+import { fmtEnergy } from "../lib/formatting";
 import { servingGroups, withServing } from "../lib/serving";
 
 interface StatusPill {
@@ -248,7 +249,11 @@ export function RecipeHeader({
               ) : null}
               {result?.nutrition.per_100g.energy_kj ? (
                 <span>
-                  Energy: <span className="font-semibold text-base-content/80">{result.nutrition.per_100g.energy_kj.toFixed(0)}kJ</span>
+                  Energy:{" "}
+                  <span className="font-semibold text-base-content/80">
+                    {fmtEnergy(result.nutrition.per_100g.energy_kj)}
+                  </span>{" "}
+                  /100 g
                 </span>
               ) : null}
             </div>

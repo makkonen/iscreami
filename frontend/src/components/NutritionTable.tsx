@@ -1,4 +1,5 @@
 import type { NutritionResult } from "../types";
+import { fmtEnergy, KJ_PER_KCAL } from "../lib/formatting";
 import { InfoIcon } from "./InfoIcon";
 import { TOOLTIPS } from "../lib/tooltips";
 
@@ -59,12 +60,21 @@ export function NutritionTable({ nutrition }: NutritionTableProps) {
           const unit = NUTRIENT_UNITS[key];
           const decimals = key === "energy_kj" ? 0 : 1;
           const per100Raw = nutrition.per_100g[key];
-          const per100Str = per100Raw == null ? "\u2014" : `${per100Raw.toFixed(decimals)} ${unit}`;
+          const isEnergy = key === "energy_kj";
+          const per100Str =
+            per100Raw == null
+              ? "\u2014"
+              : isEnergy
+                ? `${Math.round(per100Raw / KJ_PER_KCAL)} kcal`
+                : `${per100Raw.toFixed(decimals)} ${unit}`;
 
           return (
             <div key={key} className={`rounded-lg p-3 ${PRIMARY_CARD_STYLES[key]}`}>
               <div className="text-xs font-medium uppercase tracking-wider opacity-80">{label}</div>
               <div className="mt-1 text-xl font-bold tabular-nums">{per100Str}</div>
+              {isEnergy && per100Raw != null && (
+                <div className="text-sm font-semibold tabular-nums opacity-80">{Math.round(per100Raw)} kJ</div>
+              )}
               <div className="mt-1 text-xs opacity-75">Per 100g</div>
             </div>
           );
@@ -90,8 +100,10 @@ export function NutritionTable({ nutrition }: NutritionTableProps) {
               const decimals = key === "energy_kj" ? 0 : 1;
               const per100Raw = nutrition.per_100g[key];
               const perServingRaw = nutrition.per_serving[key];
-              const per100Str = per100Raw == null ? "\u2014" : `${per100Raw.toFixed(decimals)} ${unit}`;
-              const perServingStr = perServingRaw == null ? "\u2014" : `${perServingRaw.toFixed(decimals)} ${unit}`;
+              const show = (v: number | null | undefined) =>
+                v == null ? "\u2014" : key === "energy_kj" ? fmtEnergy(v) : `${v.toFixed(decimals)} ${unit}`;
+              const per100Str = show(per100Raw);
+              const perServingStr = show(perServingRaw);
               const isPrimary = PRIMARY_NUTRIENTS.includes(key as (typeof PRIMARY_NUTRIENTS)[number]);
 
               return (
