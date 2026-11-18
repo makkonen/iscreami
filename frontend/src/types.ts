@@ -216,6 +216,8 @@ export interface RecipeIngredientOut {
     ingredient_id: string;
     weight_grams: number;
     sort_order: number;
+    /** Folded in after freezing: counted in nutrition, not in the mix. */
+    is_addin?: boolean;
     ingredient: Ingredient;
 }
 
@@ -236,6 +238,7 @@ export interface Recipe {
 export interface CalculateIngredientInput {
     ingredient_id: string;
     weight_grams: number;
+    is_addin?: boolean;
 }
 
 export interface CalculateRequest {

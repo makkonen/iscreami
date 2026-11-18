@@ -4,12 +4,14 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     ForeignKey,
     Integer,
     Numeric,
     Text,
     UniqueConstraint,
+    false,
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -222,7 +224,12 @@ class Recipe(Base):
 
 class RecipeIngredient(Base):
     __tablename__ = "recipe_ingredients"
-    __table_args__ = (UniqueConstraint("recipe_id", "ingredient_id"),)
+    # The same ingredient may appear once in the mix and once as an add-in.
+    __table_args__ = (
+        UniqueConstraint(
+            "recipe_id", "ingredient_id", "is_addin", name="uq_recipe_ingredient_addin"
+        ),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     recipe_id: Mapped[uuid.UUID] = mapped_column(
@@ -235,6 +242,11 @@ class RecipeIngredient(Base):
     )
     weight_grams: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    # Add-ins (mix-ins, ripples, toppings) are folded in after freezing: they
+    # count toward nutrition but not toward the mix's balance or freezing.
+    is_addin: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=false()
+    )
 
     recipe: Mapped[Recipe] = relationship(back_populates="ingredients")
     ingredient: Mapped[Ingredient] = relationship(back_populates="recipe_ingredients")

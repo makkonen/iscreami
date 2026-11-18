@@ -479,8 +479,12 @@ def calculate(
     serving_size_g: float = settings.serving_size_g,
     candidate_profiles: Sequence[TargetProfile] | None = None,
     serving_method_id: str | None = None,
+    addins: list[tuple[Ingredient, float]] | None = None,
 ) -> CalculateResponse:
     """Run the full calculation pipeline.
+
+    items is the mix; addins are folded in after freezing, so they count
+    toward nutrition but not composition, PAC, POD, freezing or targets.
 
     With no target_profile but some candidate_profiles, compares against the
     best-fitting candidate and reports it as suggested_profile_id. With no
@@ -490,7 +494,7 @@ def calculate(
     pac = calculate_pac(items)
     freezing_result = calculate_freezing(pac, composition)
     sweetness = calculate_sweetness(items)
-    nutrition = calculate_nutrition(items, serving_size_g)
+    nutrition = calculate_nutrition(items + (addins or []), serving_size_g)
 
     target_comparison = None
     suggested_profile_id = None

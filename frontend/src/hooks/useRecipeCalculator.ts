@@ -9,12 +9,20 @@ export interface RecipeRow {
     ingredient: Ingredient;
     weight_grams: number;
     sort_order: number;
+    /** Folded in after freezing: counted in nutrition, not in the mix. */
+    is_addin: boolean;
+}
+
+/** Rows are identified by ingredient and section: an ingredient can be in both. */
+export function rowKey(row: Pick<RecipeRow, "ingredient" | "is_addin">): string {
+    return `${row.ingredient.id}:${row.is_addin ? "addin" : "mix"}`;
 }
 
 interface RecipeIngredientInput {
     ingredient_id: string;
     weight_grams: number;
     sort_order: number;
+    is_addin: boolean;
 }
 
 // Rows are persisted in display order; sort_order mirrors the array index.
@@ -23,6 +31,7 @@ function toIngredientInputs(rows: RecipeRow[]): RecipeIngredientInput[] {
         ingredient_id: r.ingredient.id,
         weight_grams: r.weight_grams,
         sort_order: idx,
+        is_addin: r.is_addin,
     }));
 }
 
@@ -78,6 +87,7 @@ export function useRecipeCalculator() {
                         ingredients: job.rows.map((r) => ({
                             ingredient_id: r.ingredient.id,
                             weight_grams: r.weight_grams,
+                            is_addin: r.is_addin,
                         })),
                     });
                     if (job.gen > clearedGenRef.current) setResult(resp);
@@ -121,14 +131,15 @@ export function useRecipeCalculator() {
 
     const addIngredient = useCallback(
         (ingredient: Ingredient, weight_grams = 100) => {
-            if (rowsRef.current.some((r) => r.ingredient.id === ingredient.id)) {
+            const key = rowKey({ ingredient, is_addin: false });
+            if (rowsRef.current.some((r) => rowKey(r) === key)) {
                 addToast(`"${ingredient.name}" is already in the recipe`, "info");
                 return;
             }
             setRows((prev) => {
                 const next = [
                     ...prev,
-                    { ingredient, weight_grams, sort_order: prev.length },
+                    { ingredient, weight_grams, sort_order: prev.length, is_addin: false },
                 ];
                 triggerCalculate(next, profile);
                 return next;
@@ -138,10 +149,10 @@ export function useRecipeCalculator() {
     );
 
     const updateWeight = useCallback(
-        (ingredientId: string, weight_grams: number) => {
+        (key: string, weight_grams: number) => {
             setRows((prev) => {
                 const next = prev.map((r) =>
-                    r.ingredient.id === ingredientId ? { ...r, weight_grams } : r
+                    rowKey(r) === key ? { ...r, weight_grams } : r
                 );
                 triggerCalculate(next, profile);
                 return next;
@@ -151,9 +162,30 @@ export function useRecipeCalculator() {
     );
 
     const removeIngredient = useCallback(
-        (ingredientId: string) => {
+        (key: string) => {
             setRows((prev) => {
-                const next = prev.filter((r) => r.ingredient.id !== ingredientId);
+                const next = prev.filter((r) => rowKey(r) !== key);
+                triggerCalculate(next, profile);
+                return next;
+            });
+        },
+        [profile, triggerCalculate]
+    );
+
+    // Move a row between the mix and the add-ins; if the ingredient is already
+    // in the other section, the weights are combined.
+    const toggleAddin = useCallback(
+        (key: string) => {
+            setRows((prev) => {
+                const row = prev.find((r) => rowKey(r) === key);
+                if (!row) return prev;
+                const moved = { ...row, is_addin: !row.is_addin };
+                const existing = prev.find((r) => rowKey(r) === rowKey(moved));
+                const next = existing
+                    ? prev
+                          .filter((r) => r !== row)
+                          .map((r) => (r === existing ? { ...r, weight_grams: r.weight_grams + row.weight_grams } : r))
+                    : prev.map((r) => (r === row ? moved : r));
                 triggerCalculate(next, profile);
                 return next;
             });
@@ -186,6 +218,7 @@ export function useRecipeCalculator() {
                     ingredient: ri.ingredient,
                     weight_grams: ri.weight_grams,
                     sort_order: ri.sort_order,
+                    is_addin: ri.is_addin ?? false,
                 }));
             const p = targetProfile ?? null;
             const serving = recipe.serving_method ?? null;
@@ -282,10 +315,12 @@ export function useRecipeCalculator() {
         // Check if ingredient count changed
         if (rows.length !== currentRecipe.ingredients.length) return true;
 
-        // Check if any ingredient or weight changed
-        const savedById = new Map(currentRecipe.ingredients.map((ri) => [ri.ingredient.id, ri]));
+        // Check if any ingredient, section or weight changed
+        const savedByKey = new Map(
+            currentRecipe.ingredients.map((ri) => [rowKey({ ingredient: ri.ingredient, is_addin: ri.is_addin ?? false }), ri])
+        );
         for (const row of rows) {
-            const saved = savedById.get(row.ingredient.id);
+            const saved = savedByKey.get(rowKey(row));
             if (!saved || saved?.weight_grams !== row.weight_grams) return true;
         }
 
@@ -304,6 +339,7 @@ export function useRecipeCalculator() {
         addIngredient,
         updateWeight,
         removeIngredient,
+        toggleAddin,
         changeProfile,
         changeServingMethod,
         loadRecipe,

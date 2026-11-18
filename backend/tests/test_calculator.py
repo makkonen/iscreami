@@ -610,3 +610,37 @@ class TestServingResolution:
         assert result.suggested_profile_id == lean.id
         assert result.serving_method == "creami_lite"
 
+
+class TestAddins:
+    def test_addins_count_for_nutrition_not_mix(self):
+        sugar = make_ingredient(
+            name="Sugar",
+            sucrose_pct=99.8,
+            water_pct=0.03,
+            total_sugar_pct=99.8,
+            energy_kj_per_100g=1619.0,
+        )
+        milk = make_ingredient(
+            name="Milk", water_pct=88.0, total_fat_pct=3.3, energy_kj_per_100g=255.0
+        )
+        nuts = make_ingredient(
+            name="Pecans", water_pct=3.5, total_fat_pct=72.0, energy_kj_per_100g=2889.0
+        )
+        base = [(sugar, 150.0), (milk, 850.0)]
+
+        plain = calculate(base)  # type: ignore[arg-type]
+        with_nuts = calculate(base, addins=[(nuts, 100.0)])  # type: ignore[list-item]
+
+        # The mix is unchanged...
+        assert with_nuts.composition == plain.composition
+        assert with_nuts.pac == plain.pac
+        assert with_nuts.sweetness.pod == plain.sweetness.pod
+        # ...but nutrition includes the add-in.
+        assert (
+            with_nuts.nutrition.per_100g["total_fat_g"]
+            > plain.nutrition.per_100g["total_fat_g"]
+        )
+        assert (
+            with_nuts.nutrition.per_100g["energy_kj"]
+            > plain.nutrition.per_100g["energy_kj"]
+        )

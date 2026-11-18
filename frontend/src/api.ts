@@ -98,7 +98,7 @@ export function createRecipe(data: {
     name: string;
     target_profile_id?: string | null;
     serving_method?: string | null;
-    ingredients: { ingredient_id: string; weight_grams: number; sort_order: number }[];
+    ingredients: { ingredient_id: string; weight_grams: number; sort_order: number; is_addin?: boolean }[];
 }): Promise<Recipe> {
     return request("/recipes", { method: "POST", body: JSON.stringify(data) });
 }
@@ -109,7 +109,7 @@ export function updateRecipe(
         name?: string;
         target_profile_id?: string | null;
         serving_method?: string | null;
-        ingredients?: { ingredient_id: string; weight_grams: number; sort_order: number }[];
+        ingredients?: { ingredient_id: string; weight_grams: number; sort_order: number; is_addin?: boolean }[];
     }
 ): Promise<Recipe> {
     return request(`/recipes/${id}`, { method: "PUT", body: JSON.stringify(data) });

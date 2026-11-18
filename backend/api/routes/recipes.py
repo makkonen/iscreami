@@ -70,6 +70,7 @@ def _sync_ingredients(
                 ingredient_id=inp.ingredient_id,
                 weight_grams=inp.weight_grams,
                 sort_order=inp.sort_order,
+                is_addin=inp.is_addin,
             )
         )
 

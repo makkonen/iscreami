@@ -190,6 +190,7 @@ class RecipeIngredientInput(BaseModel):
     ingredient_id: uuid.UUID
     weight_grams: float = Field(gt=0)
     sort_order: int = 0
+    is_addin: bool = False
 
 
 MAX_RECIPE_INGREDIENTS = 100  # shared across schemas, routes, and export
@@ -201,6 +202,7 @@ class RecipeIngredientOut(BaseModel):
     ingredient_id: uuid.UUID
     weight_grams: float
     sort_order: int
+    is_addin: bool = False
     ingredient: IngredientOut
 
 
@@ -256,6 +258,8 @@ class PaginatedRecipes(BaseModel):
 class CalculateIngredientInput(BaseModel):
     ingredient_id: uuid.UUID
     weight_grams: float = Field(gt=0)
+    # Folded in after freezing: counted in nutrition, not in the mix.
+    is_addin: bool = False
 
 
 class CalculateRequest(BaseModel):

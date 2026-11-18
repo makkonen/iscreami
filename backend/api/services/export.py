@@ -30,7 +30,9 @@ def build_export_single(
     # Prepare ingredient list for calculator (recipe.ingredients is already
     # ordered by sort_order — see models.Recipe.ingredients)
     items: list[tuple[Ingredient, float]] = [
-        (ing.ingredient, float(ing.weight_grams)) for ing in recipe.ingredients
+        (ing.ingredient, float(ing.weight_grams))
+        for ing in recipe.ingredients
+        if not ing.is_addin
     ]
 
     # Calculate metrics
@@ -303,6 +305,7 @@ def create_recipes_from_import(
                 ingredient_id=ingredient.id,
                 weight_grams=weight_grams,
                 sort_order=sort_order,
+                is_addin=bool(ing_data.get("is_addin", False)),
             )
             db_session.add(ri)
 

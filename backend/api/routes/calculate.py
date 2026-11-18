@@ -30,7 +30,14 @@ def calculate_recipe(data: CalculateRequest, db: DbSession):
             raise HTTPException(404, f"Ingredient {ing_id} not found")
 
     items = [
-        (ingredients_by_id[i.ingredient_id], i.weight_grams) for i in data.ingredients
+        (ingredients_by_id[i.ingredient_id], i.weight_grams)
+        for i in data.ingredients
+        if not i.is_addin
+    ]
+    addins = [
+        (ingredients_by_id[i.ingredient_id], i.weight_grams)
+        for i in data.ingredients
+        if i.is_addin
     ]
 
     target_profile = None
@@ -53,6 +60,7 @@ def calculate_recipe(data: CalculateRequest, db: DbSession):
         serving_size_g=data.serving_size_g,
         candidate_profiles=candidates,
         serving_method_id=data.serving_method,
+        addins=addins,
     )
 
 
