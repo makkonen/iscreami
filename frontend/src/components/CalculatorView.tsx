@@ -241,6 +241,7 @@ export function CalculatorView() {
         <div className="max-w-7xl mx-auto px-4 py-3">
           <RecipeHeader
             recipeName={currentRecipe?.name ?? null}
+            recipeId={currentRecipe?.id ?? null}
             targetProfile={profile}
             suggestedProfile={suggestedProfile}
             servingMethod={servingMethod}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, NavLink, Link } from "react-router-dom";
 import { CalculatorView } from "./components/CalculatorView";
+import { CompareView } from "./components/CompareView";
 import { IngredientsView } from "./components/IngredientsView";
 import { RecipesView } from "./components/RecipesView";
 import { ProfilesView } from "./components/ProfilesView";
@@ -89,6 +90,12 @@ function Header({ theme, setTheme }: Readonly<{ theme: Theme; setTheme: (t: Them
             >
               Profiles
             </NavLink>
+            <NavLink
+              to="/compare"
+              className={({ isActive }) => isActive ? navActive : navInactive}
+            >
+              Compare
+            </NavLink>
           </nav>
         </div>
         <div className="hidden md:block">
@@ -138,6 +145,13 @@ function Header({ theme, setTheme }: Readonly<{ theme: Theme; setTheme: (t: Them
             >
               Profiles
             </NavLink>
+            <NavLink
+              to="/compare"
+              className={({ isActive }) => isActive ? navActive : navInactive}
+              onClick={closeMenu}
+            >
+              Compare
+            </NavLink>
           </nav>
           <div className="pt-3 border-t border-base-200">
             <ThemeToggle theme={theme} setTheme={setTheme} />
@@ -167,6 +181,7 @@ function AppContent() {
           <Route path="/recipes" element={<RecipesView />} />
           <Route path="/profiles" element={<ProfilesView />} />
           <Route path="/ingredients" element={<IngredientsView />} />
+          <Route path="/compare" element={<CompareView />} />
           <Route
             path="*"
             element={<NotFoundPage />}

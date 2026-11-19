@@ -177,6 +177,8 @@ function getSweetnessPill(result: CalculateResponse | null, targetProfile: Targe
 
 interface RecipeHeaderProps {
   readonly recipeName: string | null;
+  /** The open recipe's id, once saved. */
+  readonly recipeId?: string | null;
   /** The profile chosen for this recipe, if any. */
   readonly targetProfile: TargetProfile | null;
   /** Best-fit profile used when none is chosen. */
@@ -207,6 +209,7 @@ interface RecipeHeaderProps {
 
 export function RecipeHeader({
   recipeName,
+  recipeId = null,
   targetProfile,
   suggestedProfile,
   servingMethod,
@@ -261,6 +264,16 @@ export function RecipeHeader({
                     <Link to={`/calculator/${parentRecipe.id}`} className="link link-hover font-medium text-base-content/80">
                       {parentRecipe.name}
                     </Link>
+                    {recipeId && (
+                      <>
+                        {" "}
+                        (
+                        <Link to={`/compare?a=${parentRecipe.id}&b=${recipeId}`} className="link link-hover">
+                          compare
+                        </Link>
+                        )
+                      </>
+                    )}
                   </span>
                 )}
                 {parentRecipe && variants.length > 0 && <span aria-hidden="true">·</span>}
