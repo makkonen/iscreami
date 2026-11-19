@@ -10,6 +10,7 @@ import {
 } from "../api";
 import { useToast } from "./useToast";
 import { errorMessage } from "../lib/errors";
+import { STATUS_PREFIX } from "../lib/tags";
 
 export interface RecipeRow {
     ingredient: Ingredient;
@@ -342,6 +343,10 @@ export function useRecipeCalculator() {
                     name,
                     description: duplicate ? (currentRecipe?.description ?? null) : null,
                     parent_id: duplicate ? (currentRecipe?.id ?? null) : null,
+                    // A variant starts its own testing, so status tags stay behind.
+                    tags: duplicate
+                        ? (currentRecipe?.tags ?? []).filter((t) => !t.startsWith(STATUS_PREFIX))
+                        : [],
                     target_profile_id: profile?.id ?? null,
                     serving_method: servingMethod,
                     ingredients: toIngredientInputs(rows),
@@ -382,17 +387,43 @@ export function useRecipeCalculator() {
         }
     }, [currentRecipe, rows, profile, servingMethod, addToast, qc]);
 
-    const deleteCurrentRecipe = useCallback(async () => {
-        if (!currentRecipe) return;
+    // Tags save straight away, separately from the recipe's unsaved edits.
+    const updateTags = useCallback(
+        async (tags: string[]) => {
+            if (!currentRecipe) return;
+            const { id, tags: before } = currentRecipe;
+            const withTags = (next: string[] | undefined) => (r: Recipe | null | undefined) =>
+                r && r.id === id ? { ...r, tags: next } : r;
+            // Show them at once, so a second tag added before this one saves builds on it.
+            setCurrentRecipe((r) => withTags(tags)(r) ?? null);
+            try {
+                const saved = await apiUpdateRecipe(id, { tags });
+                setCurrentRecipe((r) => withTags(saved.tags)(r) ?? null);
+                qc.setQueryData<Recipe>(["recipe", id], (r) => withTags(saved.tags)(r) ?? undefined);
+                qc.invalidateQueries({ queryKey: ["recipes"] });
+            } catch (err) {
+                setCurrentRecipe((r) => withTags(before)(r) ?? null);
+                addToast(errorMessage(err, "Failed to save tags."), "error");
+            }
+        },
+        [currentRecipe, addToast, qc]
+    );
+
+    // Returns whether the recipe was deleted.
+    const deleteCurrentRecipe = useCallback(async (): Promise<boolean> => {
+        if (!currentRecipe) return false;
         const name = currentRecipe.name;
         setIsSaving(true);
         try {
             await apiDeleteRecipe(currentRecipe.id);
             qc.invalidateQueries({ queryKey: ["recipes"] });
             addToast(`Recipe "${name}" deleted.`, "success");
+            qc.removeQueries({ queryKey: ["recipe", currentRecipe.id] });
             clearRecipe();
+            return true;
         } catch (err) {
             addToast(errorMessage(err, "Failed to delete recipe."), "error");
+            return false;
         } finally {
             setIsSaving(false);
         }
@@ -453,6 +484,7 @@ export function useRecipeCalculator() {
         revertRecipe,
         saveAsNewRecipe,
         saveCurrentRecipe,
+        updateTags,
         deleteCurrentRecipe,
     };
 }

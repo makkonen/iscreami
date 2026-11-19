@@ -185,6 +185,21 @@ class TargetProfileOut(TargetProfileBase):
 
 # --- Recipe ---
 
+MAX_RECIPE_TAGS = 30
+
+
+def normalize_tags(tags: list[str] | None) -> list[str] | None:
+    """Tidy tags: trim each "/" level, drop empty levels and duplicates, sort."""
+    if tags is None:
+        return None
+    seen: dict[str, str] = {}
+    for tag in tags:
+        parts = [" ".join(p.split()) for p in tag.split("/")]
+        clean = "/".join(p for p in parts if p)[:100]
+        if clean and clean.casefold() not in seen:
+            seen[clean.casefold()] = clean
+    return sorted(seen.values(), key=str.casefold)
+
 
 class RecipeIngredientInput(BaseModel):
     ingredient_id: uuid.UUID
@@ -213,9 +228,12 @@ class RecipeCreate(BaseModel):
     serving_method: str | None = Field(default=None, max_length=50)
     target_profile_id: uuid.UUID | None = None
     parent_id: uuid.UUID | None = None
+    tags: list[str] = Field(default_factory=list, max_length=MAX_RECIPE_TAGS)
     ingredients: list[RecipeIngredientInput] = Field(
         default_factory=list, max_length=MAX_RECIPE_INGREDIENTS
     )
+
+    _tidy_tags = field_validator("tags")(normalize_tags)
 
 
 class RecipeUpdate(BaseModel):
@@ -224,9 +242,12 @@ class RecipeUpdate(BaseModel):
     recipe_type: str | None = Field(default=None, max_length=100)
     serving_method: str | None = Field(default=None, max_length=50)
     target_profile_id: uuid.UUID | None = None
+    tags: list[str] | None = Field(default=None, max_length=MAX_RECIPE_TAGS)
     ingredients: list[RecipeIngredientInput] | None = Field(
         default=None, max_length=MAX_RECIPE_INGREDIENTS
     )
+
+    _tidy_tags = field_validator("tags")(normalize_tags)
 
 
 class RecipeOut(BaseModel):
@@ -239,6 +260,7 @@ class RecipeOut(BaseModel):
     target_profile_id: uuid.UUID | None = None
     target_profile: TargetProfileOut | None = None
     parent_id: uuid.UUID | None = None
+    tags: list[str] = []
     created_at: datetime
     updated_at: datetime
     ingredients: list[RecipeIngredientOut] = []
@@ -385,6 +407,7 @@ class RecipeExportOut(BaseModel):
     description: str | None = None
     recipe_type: str | None = None
     serving_method: str | None = None
+    tags: list[str] = []
     created_at: str
     updated_at: str
     total_weight_grams: float

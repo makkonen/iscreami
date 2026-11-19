@@ -100,6 +100,7 @@ export function createRecipe(data: {
     name: string;
     description?: string | null;
     parent_id?: string | null;
+    tags?: string[];
     target_profile_id?: string | null;
     serving_method?: string | null;
     ingredients: { ingredient_id: string; weight_grams: number; sort_order: number; is_addin?: boolean }[];
@@ -111,6 +112,7 @@ export function updateRecipe(
     id: string,
     data: {
         name?: string;
+        tags?: string[];
         target_profile_id?: string | null;
         serving_method?: string | null;
         ingredients?: { ingredient_id: string; weight_grams: number; sort_order: number; is_addin?: boolean }[];

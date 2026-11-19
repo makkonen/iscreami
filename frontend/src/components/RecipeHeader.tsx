@@ -1,5 +1,6 @@
 import { Copy, GitBranch, RotateCcw, Save, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { TagEditor } from "./TagEditor";
 import type { CalculateResponse, Recipe, ServingMethod, TargetProfile } from "../types";
 import { Tooltip } from "./Tooltip";
 import { TOOLTIPS } from "../lib/tooltips";
@@ -198,6 +199,10 @@ interface RecipeHeaderProps {
   readonly parentRecipe?: Pick<Recipe, "id" | "name"> | null;
   /** Recipes duplicated from this one. */
   readonly variants?: Pick<Recipe, "id" | "name">[];
+  readonly tags?: readonly string[];
+  /** Every tag in use, for suggestions. */
+  readonly allTags?: readonly string[];
+  readonly onChangeTags?: (tags: string[]) => void;
 }
 
 export function RecipeHeader({
@@ -219,6 +224,9 @@ export function RecipeHeader({
   onChangeProfile,
   parentRecipe = null,
   variants = [],
+  tags = [],
+  allTags = [],
+  onChangeTags,
 }: RecipeHeaderProps) {
   const effectiveProfile = targetProfile ?? suggestedProfile;
   // The serving method actually applied (chosen, or the profile's usual one).
@@ -270,6 +278,11 @@ export function RecipeHeader({
                   </span>
                 )}
               </p>
+            )}
+            {recipeName && onChangeTags && (
+              <div className="mb-1.5">
+                <TagEditor tags={tags} allTags={allTags} onChange={onChangeTags} />
+              </div>
             )}
             {/* Compact summary line */}
             <div className="flex items-center gap-3 text-sm text-base-content/60 flex-wrap">

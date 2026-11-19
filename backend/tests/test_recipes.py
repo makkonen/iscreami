@@ -63,3 +63,29 @@ class TestRecipeParent:
         with pytest.raises(HTTPException) as exc_info:
             create_recipe(RecipeCreate(name="Orphan", parent_id=uuid.uuid4()), test_db)
         assert exc_info.value.status_code == 400
+
+
+class TestRecipeTags:
+    """Tags are tidied on the way in and saved with the recipe."""
+
+    def test_normalize_tags(self):
+        from api.schemas import normalize_tags
+
+        assert normalize_tags(
+            [" Status / Testing ", "status/testing", "Base//Chocolate", "", " / "]
+        ) == ["Base/Chocolate", "Status/Testing"]
+        assert normalize_tags(None) is None
+
+    def test_create_and_update_tags(self, test_db):
+        from api.routes.recipes import create_recipe, update_recipe
+        from api.schemas import RecipeCreate, RecipeUpdate
+
+        recipe = create_recipe(
+            RecipeCreate(name="Tagged", tags=["Protein", "Status/Testing"]), test_db
+        )
+        assert recipe.tags == ["Protein", "Status/Testing"]
+        updated = update_recipe(
+            recipe.id, RecipeUpdate(tags=["Status/Keeper"]), test_db
+        )
+        assert updated.tags == ["Status/Keeper"]
+        assert updated.name == "Tagged"

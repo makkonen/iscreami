@@ -15,6 +15,7 @@ import { MetricCards, type MetricDragHandlers } from "./MetricCards";
 import { isDraggableMetric, weightsForTarget } from "../lib/metricDrag";
 import { FREEZE_METRIC_LABELS, type FreezeMetric, isTargeted, visibleComparisons } from "../lib/metrics";
 import { withServing } from "../lib/serving";
+import { tagCounts } from "../lib/tags";
 import { NutritionTable } from "./NutritionTable";
 import { RecipeHeader } from "./RecipeHeader";
 import { InfoIcon } from "./InfoIcon";
@@ -52,6 +53,7 @@ export function CalculatorView() {
     loadRecipe,
     revertRecipe,
     saveAsNewRecipe,
+    updateTags,
     saveCurrentRecipe,
     deleteCurrentRecipe,
   } = useRecipeCalculator();
@@ -154,13 +156,15 @@ export function CalculatorView() {
   useEscape(() => setSaveDialogOpen(false), saveDialogOpen);
   useEscape(() => setDeleteConfirmOpen(false), deleteConfirmOpen);
 
-  // Load recipe from URL params
+  // Load recipe from URL params. Only when it's a different recipe: a refetch of
+  // the open one (window refocus, tags saved) mustn't wipe unsaved edits.
+  const loadedId = currentRecipe?.id;
   useEffect(() => {
-    if (urlRecipe && profiles) {
+    if (urlRecipe && profiles && urlRecipe.id !== loadedId) {
       const targetProfile = profiles.find((p) => p.id === urlRecipe.target_profile_id) ?? null;
       loadRecipe(urlRecipe, targetProfile);
     }
-  }, [urlRecipe, profiles, loadRecipe]);
+  }, [urlRecipe, profiles, loadRecipe, loadedId]);
 
   async function handleSave() {
     if (currentRecipe) {
@@ -192,14 +196,17 @@ export function CalculatorView() {
     ? (allRecipes?.items.find((r) => r.id === currentRecipe.parent_id) ?? null)
     : null;
   const variants = currentRecipe ? (allRecipes?.items.filter((r) => r.parent_id === currentRecipe.id) ?? []) : [];
+  const allTags = [...tagCounts(allRecipes?.items.map((r) => r.tags) ?? []).keys()].sort();
 
   function handleSaveNameKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") void handleSaveNewConfirm();
   }
 
   async function handleDeleteConfirm() {
-    await deleteCurrentRecipe();
+    const deleted = await deleteCurrentRecipe();
     setDeleteConfirmOpen(false);
+    // Leave the deleted recipe's URL, or it would be loaded again from cache.
+    if (deleted) navigate("/calculator", { replace: true });
   }
 
   return (
@@ -225,6 +232,9 @@ export function CalculatorView() {
             onDeleteRecipe={() => setDeleteConfirmOpen(true)}
             parentRecipe={parentRecipe}
             variants={variants}
+            tags={currentRecipe?.tags ?? []}
+            allTags={allTags}
+            onChangeTags={(tags) => void updateTags(tags)}
             onChangeProfile={changeProfile}
           />
         </div>

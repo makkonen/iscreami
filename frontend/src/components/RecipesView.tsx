@@ -8,6 +8,7 @@ import { useToast } from "../hooks/useToast";
 import { downloadJson } from "../lib/download";
 import { errorMessage } from "../lib/errors";
 import { RecipeCard } from "./RecipeCard";
+import { childTags, hasTag, isRetired, RETIRED_TAG, tagCounts, tagLeaf, tagWithin } from "../lib/tags";
 
 export function RecipesView() {
   const navigate = useNavigate();
@@ -28,16 +29,33 @@ export function RecipesView() {
 
   const recipes = recipesData?.items ?? [];
   const [search, setSearch] = useState("");
-  // Match every word against the name, notes and ingredient names.
+  // The chosen tag, e.g. "Base" or "Base/Chocolate"; recipes at or under it show.
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const counts = tagCounts(recipes.map((r) => r.tags));
+  // Retired recipes stay out of the way unless that tag is picked.
+  const showRetired = tagFilter != null && tagWithin(RETIRED_TAG, tagFilter);
+  const retiredCount = recipes.filter((r) => isRetired(r.tags)).length;
+  // Match every word against the name, notes, tags and ingredient names.
   const words = search.toLowerCase().split(/\s+/).filter(Boolean);
-  const shown = words.length
-    ? recipes.filter((r) => {
-        const text = [r.name, r.description ?? "", ...r.ingredients.map((i) => i.ingredient.name)]
-          .join(" ")
-          .toLowerCase();
-        return words.every((w) => text.includes(w));
-      })
-    : recipes;
+  const shown = recipes.filter((r) => {
+    if (!showRetired && isRetired(r.tags)) return false;
+    if (tagFilter && !hasTag(r.tags, tagFilter)) return false;
+    if (!words.length) return true;
+    const text = [r.name, r.description ?? "", ...(r.tags ?? []), ...r.ingredients.map((i) => i.ingredient.name)]
+      .join(" ")
+      .toLowerCase();
+    return words.every((w) => text.includes(w));
+  });
+  const filtering = words.length > 0 || tagFilter != null;
+  // The tag levels to offer: the top level, then each chosen level's children.
+  const tagRows: { parent: string | null; tags: string[] }[] = [];
+  if (counts.size > 0) {
+    const chain = tagFilter ? tagFilter.split("/").map((_, i, a) => a.slice(0, i + 1).join("/")) : [];
+    for (const parent of [null, ...chain]) {
+      const tags = childTags(counts, parent);
+      if (tags.length) tagRows.push({ parent, tags });
+    }
+  }
 
   async function handleExportAll() {
     setExportAllLoading(true);
@@ -163,14 +181,60 @@ export function RecipesView() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            {words.length > 0 && (
+            {filtering && (
               <span className="text-xs text-base-content/55 shrink-0">
                 {shown.length} of {recipes.length}
               </span>
             )}
           </div>
+          {tagRows.length > 0 && (
+            <div className="mb-4 space-y-1.5" aria-label="Filter by tag">
+              {tagRows.map(({ parent, tags }) => (
+                <div key={parent ?? ""} className="flex flex-wrap items-center gap-1.5">
+                  {parent ? (
+                    <span className="text-xs text-base-content/45 mr-1">{tagLeaf(parent)} ›</span>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`btn btn-xs ${tagFilter == null ? "btn-primary" : "btn-ghost"}`}
+                      aria-pressed={tagFilter == null}
+                      onClick={() => setTagFilter(null)}
+                    >
+                      All
+                    </button>
+                  )}
+                  {tags.map((tag) => {
+                    const active = tagFilter != null && tagWithin(tagFilter, tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        className={`btn btn-xs ${active ? "btn-primary" : "btn-ghost border-base-300"}`}
+                        aria-pressed={active}
+                        // Clicking the chosen tag again steps back to its parent.
+                        onClick={() => setTagFilter(tagFilter === tag ? parent : tag)}
+                      >
+                        {tagLeaf(tag)}
+                        <span className="opacity-60 tabular-nums">{counts.get(tag)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+          {!showRetired && retiredCount > 0 && (
+            <p className="mb-3 text-xs text-base-content/45">
+              {retiredCount} retired recipe{retiredCount === 1 ? "" : "s"} hidden;{" "}
+              <button type="button" className="link" onClick={() => setTagFilter(RETIRED_TAG)}>
+                show
+              </button>
+            </p>
+          )}
           {shown.length === 0 ? (
-            <p className="py-8 text-center text-sm text-base-content/55">No recipes match “{search}”.</p>
+            <p className="py-8 text-center text-sm text-base-content/55">
+              {words.length ? `No recipes match “${search}”.` : "No recipes with this tag."}
+            </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {shown.map((recipe) => (

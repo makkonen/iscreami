@@ -123,6 +123,7 @@ def create_recipe(data: RecipeCreate, db: DbSession):
         serving_method=data.serving_method,
         target_profile_id=data.target_profile_id,
         parent_id=data.parent_id,
+        tags=data.tags,
     )
     if data.parent_id is not None and db.get(Recipe, data.parent_id) is None:
         raise HTTPException(400, "Parent recipe not found")

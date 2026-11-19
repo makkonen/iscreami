@@ -8,7 +8,12 @@ from typing import TYPE_CHECKING
 from sqlalchemy import select
 
 from api.models import Ingredient, Recipe, RecipeIngredient, TargetProfile
-from api.schemas import MAX_RECIPE_INGREDIENTS, RecipeExportMetrics, RecipeExportOut
+from api.schemas import (
+    MAX_RECIPE_INGREDIENTS,
+    RecipeExportMetrics,
+    RecipeExportOut,
+    normalize_tags,
+)
 from api.services.calculator import (
     calculate_composition,
     calculate_freezing,
@@ -64,6 +69,7 @@ def build_export_single(
             "description": recipe.description,
             "recipe_type": recipe.recipe_type,
             "serving_method": recipe.serving_method,
+            "tags": recipe.tags or [],
             "created_at": recipe.created_at.isoformat(),
             "updated_at": recipe.updated_at.isoformat(),
             "total_weight_grams": float(total_weight_g),
@@ -283,6 +289,10 @@ def create_recipes_from_import(
             description=recipe_data.get("description"),
             recipe_type=recipe_data.get("recipe_type"),
             serving_method=recipe_data.get("serving_method"),
+            tags=normalize_tags(
+                [t for t in recipe_data.get("tags") or [] if isinstance(t, str)]
+            )
+            or [],
             target_profile_id=target_profile.id if target_profile else None,
         )
         db_session.add(recipe)

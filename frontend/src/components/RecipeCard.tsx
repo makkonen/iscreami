@@ -62,6 +62,15 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
                 {recipe.description}
               </p>
             )}
+            {recipe.tags && recipe.tags.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {recipe.tags.map((tag) => (
+                  <span key={tag} className="badge badge-xs badge-ghost text-base-content/65">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           <ArrowRight
             size={16}
