@@ -1,5 +1,6 @@
-import { RotateCcw, Save, Trash2 } from "lucide-react";
-import type { CalculateResponse, ServingMethod, TargetProfile } from "../types";
+import { Copy, GitBranch, RotateCcw, Save, Trash2 } from "lucide-react";
+import { Link } from "react-router-dom";
+import type { CalculateResponse, Recipe, ServingMethod, TargetProfile } from "../types";
 import { Tooltip } from "./Tooltip";
 import { TOOLTIPS } from "../lib/tooltips";
 import { InfoIcon } from "./InfoIcon";
@@ -190,8 +191,13 @@ interface RecipeHeaderProps {
   readonly hasUnsavedChanges: boolean;
   readonly onSaveRecipe: () => void;
   readonly onRevertRecipe: () => void;
+  readonly onDuplicateRecipe: () => void;
   readonly onDeleteRecipe: () => void;
   readonly onChangeProfile: (profile: TargetProfile | null) => void;
+  /** The recipe this one was duplicated from, if it still exists. */
+  readonly parentRecipe?: Pick<Recipe, "id" | "name"> | null;
+  /** Recipes duplicated from this one. */
+  readonly variants?: Pick<Recipe, "id" | "name">[];
 }
 
 export function RecipeHeader({
@@ -208,8 +214,11 @@ export function RecipeHeader({
   hasUnsavedChanges,
   onSaveRecipe,
   onRevertRecipe,
+  onDuplicateRecipe,
   onDeleteRecipe,
   onChangeProfile,
+  parentRecipe = null,
+  variants = [],
 }: RecipeHeaderProps) {
   const effectiveProfile = targetProfile ?? suggestedProfile;
   // The serving method actually applied (chosen, or the profile's usual one).
@@ -235,6 +244,33 @@ export function RecipeHeader({
                 <span className="text-base-content/40 italic">Unsaved recipe</span>
               )}
             </h1>
+            {(parentRecipe || variants.length > 0) && (
+              <p className="mb-1 flex flex-wrap items-center gap-x-1.5 text-sm text-base-content/60">
+                <GitBranch size={14} className="shrink-0" aria-hidden="true" />
+                {parentRecipe && (
+                  <span>
+                    Based on{" "}
+                    <Link to={`/calculator/${parentRecipe.id}`} className="link link-hover font-medium text-base-content/80">
+                      {parentRecipe.name}
+                    </Link>
+                  </span>
+                )}
+                {parentRecipe && variants.length > 0 && <span aria-hidden="true">·</span>}
+                {variants.length > 0 && (
+                  <span>
+                    Variants:{" "}
+                    {variants.map((v, i) => (
+                      <span key={v.id}>
+                        {i > 0 && ", "}
+                        <Link to={`/calculator/${v.id}`} className="link link-hover font-medium text-base-content/80">
+                          {v.name}
+                        </Link>
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </p>
+            )}
             {/* Compact summary line */}
             <div className="flex items-center gap-3 text-sm text-base-content/60 flex-wrap">
               {effectiveProfile ? (
@@ -350,6 +386,19 @@ export function RecipeHeader({
                 >
                   <RotateCcw size={16} />
                   Revert
+                </button>
+              </Tooltip>
+            )}
+            {recipeName && (
+              <Tooltip content={TOOLTIPS.duplicateRecipe}>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost gap-1"
+                  onClick={onDuplicateRecipe}
+                  disabled={isSaving}
+                >
+                  <Copy size={16} />
+                  Duplicate
                 </button>
               </Tooltip>
             )}

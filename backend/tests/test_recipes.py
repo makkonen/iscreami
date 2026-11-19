@@ -36,3 +36,30 @@ class TestImportRecipes:
         assert (
             "size could not be determined" in exc_info.value.detail.lower()  # type: ignore[union-attr]
         )
+
+
+class TestRecipeParent:
+    """Duplicates remember the recipe they were made from."""
+
+    def test_create_with_parent(self, test_db):
+        from api.routes.recipes import create_recipe
+        from api.schemas import RecipeCreate
+        from tests.conftest import make_recipe_orm
+
+        parent = make_recipe_orm(test_db, name="Base")
+        child = create_recipe(
+            RecipeCreate(name="Base (copy)", parent_id=parent.id), test_db
+        )
+        assert child.parent_id == parent.id
+
+    def test_missing_parent_rejected(self, test_db):
+        import uuid
+
+        from fastapi import HTTPException
+
+        from api.routes.recipes import create_recipe
+        from api.schemas import RecipeCreate
+
+        with pytest.raises(HTTPException) as exc_info:
+            create_recipe(RecipeCreate(name="Orphan", parent_id=uuid.uuid4()), test_db)
+        assert exc_info.value.status_code == 400

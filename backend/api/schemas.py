@@ -212,6 +212,7 @@ class RecipeCreate(BaseModel):
     recipe_type: str | None = Field(default=None, max_length=100)
     serving_method: str | None = Field(default=None, max_length=50)
     target_profile_id: uuid.UUID | None = None
+    parent_id: uuid.UUID | None = None
     ingredients: list[RecipeIngredientInput] = Field(
         default_factory=list, max_length=MAX_RECIPE_INGREDIENTS
     )
@@ -237,6 +238,7 @@ class RecipeOut(BaseModel):
     serving_method: str | None = None
     target_profile_id: uuid.UUID | None = None
     target_profile: TargetProfileOut | None = None
+    parent_id: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
     ingredients: list[RecipeIngredientOut] = []

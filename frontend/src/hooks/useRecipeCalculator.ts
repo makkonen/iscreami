@@ -332,26 +332,33 @@ export function useRecipeCalculator() {
         if (currentRecipe) loadRecipe(currentRecipe, currentRecipe.target_profile ?? null);
     }, [currentRecipe, loadRecipe]);
 
+    // Save the editor as a new recipe. As a duplicate, it keeps the open
+    // recipe's notes and links back to it. Returns the saved recipe, if any.
     const saveAsNewRecipe = useCallback(
-        async (name: string) => {
+        async (name: string, { duplicate = false } = {}): Promise<Recipe | null> => {
             setIsSaving(true);
             try {
                 const saved = await createRecipe({
                     name,
+                    description: duplicate ? (currentRecipe?.description ?? null) : null,
+                    parent_id: duplicate ? (currentRecipe?.id ?? null) : null,
                     target_profile_id: profile?.id ?? null,
                     serving_method: servingMethod,
                     ingredients: toIngredientInputs(rows),
                 });
                 setCurrentRecipe(saved);
+                qc.setQueryData(["recipe", saved.id], saved);
                 qc.invalidateQueries({ queryKey: ["recipes"] });
                 addToast(`Recipe "${name}" saved.`, "success");
+                return saved;
             } catch (err) {
                 addToast(errorMessage(err, "Failed to save recipe."), "error");
+                return null;
             } finally {
                 setIsSaving(false);
             }
         },
-        [rows, profile, servingMethod, addToast, qc]
+        [rows, profile, servingMethod, currentRecipe, addToast, qc]
     );
 
     const saveCurrentRecipe = useCallback(async () => {
@@ -365,6 +372,7 @@ export function useRecipeCalculator() {
                 ingredients: toIngredientInputs(rows),
             });
             setCurrentRecipe(saved);
+            qc.setQueryData(["recipe", saved.id], saved);
             qc.invalidateQueries({ queryKey: ["recipes"] });
             addToast(`Recipe "${saved.name}" updated.`, "success");
         } catch (err) {

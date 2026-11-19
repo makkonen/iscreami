@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { IceCreamCone, Scale } from "lucide-react";
 import { BalanceModal } from "./BalanceModal";
 import { keyFor, type RecipeRow } from "../hooks/useRecipeCalculator";
 import type { TargetProfile } from "../types";
-import { fetchProfiles, fetchRecipe, fetchServingMethods } from "../api";
+import { fetchProfiles, fetchRecipe, fetchRecipes, fetchServingMethods } from "../api";
 import { useRecipeCalculator } from "../hooks/useRecipeCalculator";
 import { CompositionTable } from "./CompositionTable";
 import { FreezingSection } from "./FreezingSection";
@@ -23,6 +23,7 @@ import { TOOLTIPS } from "../lib/tooltips";
 
 export function CalculatorView() {
   const { recipeId } = useParams();
+  const navigate = useNavigate();
   useEffect(() => {
     document.title = "Calculator - iscreami";
   }, []);
@@ -64,6 +65,9 @@ export function CalculatorView() {
     queryFn: fetchServingMethods,
     staleTime: Infinity,
   });
+
+  // For the "based on" / variants line.
+  const { data: allRecipes } = useQuery({ queryKey: ["recipes"], queryFn: fetchRecipes });
 
   // Load recipe from URL params if present
   const { data: urlRecipe } = useQuery({
@@ -144,6 +148,8 @@ export function CalculatorView() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [balanceOpen, setBalanceOpen] = useState(false);
   const [newRecipeName, setNewRecipeName] = useState("");
+  // Whether the name dialog is saving a duplicate of the open recipe.
+  const [duplicating, setDuplicating] = useState(false);
 
   useEscape(() => setSaveDialogOpen(false), saveDialogOpen);
   useEscape(() => setDeleteConfirmOpen(false), deleteConfirmOpen);
@@ -161,16 +167,31 @@ export function CalculatorView() {
       await saveCurrentRecipe();
     } else {
       setNewRecipeName("");
+      setDuplicating(false);
       setSaveDialogOpen(true);
     }
+  }
+
+  function handleDuplicate() {
+    if (!currentRecipe) return;
+    setNewRecipeName(`${currentRecipe.name} (copy)`);
+    setDuplicating(true);
+    setSaveDialogOpen(true);
   }
 
   async function handleSaveNewConfirm() {
     const name = newRecipeName.trim();
     if (!name) return;
-    await saveAsNewRecipe(name);
+    const saved = await saveAsNewRecipe(name, { duplicate: duplicating });
     setSaveDialogOpen(false);
+    // Point the URL at the new recipe, so reloading opens it rather than the original.
+    if (saved) navigate(`/calculator/${saved.id}`, { replace: !duplicating });
   }
+
+  const parentRecipe = currentRecipe?.parent_id
+    ? (allRecipes?.items.find((r) => r.id === currentRecipe.parent_id) ?? null)
+    : null;
+  const variants = currentRecipe ? (allRecipes?.items.filter((r) => r.parent_id === currentRecipe.id) ?? []) : [];
 
   function handleSaveNameKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") void handleSaveNewConfirm();
@@ -200,7 +221,10 @@ export function CalculatorView() {
             hasUnsavedChanges={hasUnsavedChanges}
             onSaveRecipe={handleSave}
             onRevertRecipe={revertRecipe}
+            onDuplicateRecipe={handleDuplicate}
             onDeleteRecipe={() => setDeleteConfirmOpen(true)}
+            parentRecipe={parentRecipe}
+            variants={variants}
             onChangeProfile={changeProfile}
           />
         </div>
@@ -438,7 +462,13 @@ export function CalculatorView() {
       {saveDialogOpen && (
         <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="Save recipe">
           <div className="modal-box max-w-sm">
-            <h3 className="font-bold text-lg mb-4">Save Recipe</h3>
+            <h3 className="font-bold text-lg mb-4">{duplicating ? "Duplicate Recipe" : "Save Recipe"}</h3>
+            {duplicating && currentRecipe && (
+              <p className="text-sm text-base-content/60 mb-3">
+                Saves the recipe as it is now as a new variant of &ldquo;{currentRecipe.name}&rdquo;, which stays as
+                last saved.
+              </p>
+            )}
             <label className="label" htmlFor="recipe-name-input">
               <span className="label-text">Recipe name</span>
             </label>

@@ -229,6 +229,8 @@ export interface Recipe {
     serving_method?: string | null;
     target_profile_id: string | null;
     target_profile: TargetProfile | null;
+    /** The recipe this one was duplicated from. */
+    parent_id?: string | null;
     total_weight_grams: number;
     created_at: string;
     updated_at: string;

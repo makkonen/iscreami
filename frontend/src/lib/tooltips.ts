@@ -48,6 +48,7 @@ export const TOOLTIPS = {
     usageLimits:
         "How much of this ingredient a recipe normally uses, as % of the whole mix — e.g. salt up to 0.3%, gums a few tenths of a percent. Used as guardrails for the in-spec slider band (and balancing), since taste and texture limits aren't captured by the profile.",
     deleteRecipe: "Delete the currently open recipe",
+    duplicateRecipe: "Save as it is now as a new variant, linked back to this one",
     revertRecipe: "Discard unsaved changes and go back to the saved recipe",
 };
 
