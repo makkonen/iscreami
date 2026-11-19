@@ -2,6 +2,13 @@
 @plugin "daisyui";
 @custom-variant dark (&:is(.dark *));
 
+/* Hidden tooltips near the right edge (DaisyUI's ::before) would otherwise
+   widen the page and let it scroll sideways. clip, unlike hidden, keeps
+   position: sticky working. */
+body {
+  overflow-x: clip;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
