@@ -1,4 +1,4 @@
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import {
   closestCenter,
   DndContext,
@@ -324,7 +324,8 @@ export function IngredientPanel({
             }}
             onKeyDown={() => setScales((m) => (key in m ? m : { ...m, [key]: max }))}
             onChange={(e) => onWeightChange(key, Number(Number.parseFloat(e.target.value).toFixed(2)))}
-            className="range range-xs range-primary w-full"
+            className="range range-xs range-primary range-gradient w-full"
+            style={{ "--frac": max > 0 ? Math.min(row.weight_grams / max, 1) : 0 } as CSSProperties}
           />
           {band && band.lo < max && (
             <div
@@ -435,7 +436,8 @@ export function IngredientPanel({
               title="Scale every ingredient (add-ins too); 0 to double, re-centres when you let go"
               onPointerDown={() => beginScale()}
               onChange={(e) => scaleTo(Number(e.target.value))}
-              className="range range-xs w-full"
+              className="range range-xs range-gradient w-full"
+              style={{ "--frac": scaleMax > 0 ? Math.min(mixWeight / scaleMax, 1) : 0 } as CSSProperties}
             />
           </div>
           <WeightInput

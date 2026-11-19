@@ -9,6 +9,28 @@ body {
   overflow-x: clip;
 }
 
+/* Weight sliders: DaisyUI draws the filled part as a huge box-shadow off the
+   handle, which can leave a squared-off end beside it. Draw it as a gradient
+   ending at the handle's centre instead; --frac is value / max. */
+.range.range-gradient {
+  --range-fill: 0;
+  --range-pos: calc(var(--range-thumb-size) / 2 + (100% - var(--range-thumb-size)) * var(--frac, 0));
+  /* The fill at full height; the empty track thinner behind it, as before. */
+  background:
+    linear-gradient(var(--range-progress), var(--range-progress)) left center / var(--range-pos) 100% no-repeat,
+    linear-gradient(var(--range-bg), var(--range-bg)) center / 100% 50% no-repeat;
+}
+.range.range-gradient::-webkit-slider-runnable-track {
+  background: transparent;
+  border: none;
+}
+.range.range-gradient::-moz-range-track {
+  background: transparent;
+}
+.range.range-gradient::-moz-range-progress {
+  background: transparent;
+}
+
 @keyframes toast-in {
   from {
     opacity: 0;
