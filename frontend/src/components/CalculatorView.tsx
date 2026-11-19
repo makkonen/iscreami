@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { IceCreamCone, Scale } from "lucide-react";
+import { IceCreamCone, Redo2, Scale, Undo2 } from "lucide-react";
 import { BalanceModal } from "./BalanceModal";
 import { BatchLog } from "./BatchLog";
 import { keyFor, type RecipeRow } from "../hooks/useRecipeCalculator";
@@ -55,6 +55,10 @@ export function CalculatorView() {
     requestBalance,
     loadRecipe,
     revertRecipe,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
     saveAsNewRecipe,
     updateTags,
     saveCurrentRecipe,
@@ -205,6 +209,31 @@ export function CalculatorView() {
     if (e.key === "Enter") void handleSaveNewConfirm();
   }
 
+  // Ctrl+Z / Ctrl+Shift+Z (or Ctrl+Y) step through edits, except while typing
+  // in a field, where the browser's own undo applies.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      const el = e.target;
+      // Sliders keep focus after a drag, but have no undo of their own.
+      const typing =
+        el instanceof HTMLInputElement
+          ? !["range", "checkbox", "radio", "button"].includes(el.type)
+          : el instanceof Element && !!el.closest("textarea, select, [contenteditable='true']");
+      if (typing) return;
+      const key = e.key.toLowerCase();
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if ((key === "z" && e.shiftKey) || key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [undo, redo]);
+
   // Put a logged batch's weights in the editor, fetching any ingredient it
   // used that the recipe no longer has.
   const { addToast } = useToast();
@@ -281,6 +310,29 @@ export function CalculatorView() {
                     Build the mix here. Lock rows you want left alone, then balance.
                   </p>
                 </div>
+                <div className="flex items-center gap-1 shrink-0">
+                <div className="join">
+                  <button
+                    type="button"
+                    className="join-item btn btn-sm btn-ghost px-2"
+                    onClick={undo}
+                    disabled={!canUndo}
+                    aria-label="Undo"
+                    title="Undo (Ctrl+Z)"
+                  >
+                    <Undo2 size={15} />
+                  </button>
+                  <button
+                    type="button"
+                    className="join-item btn btn-sm btn-ghost px-2"
+                    onClick={redo}
+                    disabled={!canRedo}
+                    aria-label="Redo"
+                    title="Redo (Ctrl+Shift+Z)"
+                  >
+                    <Redo2 size={15} />
+                  </button>
+                </div>
                 <button
                   type="button"
                   className="btn btn-sm btn-outline gap-1 shrink-0"
@@ -289,6 +341,7 @@ export function CalculatorView() {
                 >
                   <Scale size={14} /> Balance
                 </button>
+                </div>
               </div>
               <IngredientSearch onSelect={addIngredient} />
               <div className="mt-4">

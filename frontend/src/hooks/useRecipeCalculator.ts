@@ -37,6 +37,17 @@ interface RecipeIngredientInput {
 }
 
 // Rows are persisted in display order; sort_order mirrors the array index.
+/** The parts of the editor that undo and redo step through. */
+interface EditorState {
+    rows: RecipeRow[];
+    profile: TargetProfile | null;
+    servingMethod: string | null;
+}
+
+/** Changes closer together than this (a slider drag, typing) undo as one step. */
+const UNDO_COALESCE_MS = 700;
+const UNDO_LIMIT = 100;
+
 function toIngredientInputs(rows: RecipeRow[]): RecipeIngredientInput[] {
     return rows.map((r, idx) => ({
         ingredient_id: r.ingredient.id,
@@ -66,6 +77,16 @@ export function useRecipeCalculator() {
     }, [rows]);
     const { addToast } = useToast();
     const qc = useQueryClient();
+
+    // Undo history (see below). Set before the actions that use it.
+    const historyRef = useRef<{ past: EditorState[]; future: EditorState[]; current: EditorState | null; lastAt: number }>({
+        past: [],
+        future: [],
+        current: null,
+        lastAt: 0,
+    });
+    const applyingRef = useRef(false);
+    const resetHistoryRef = useRef(false);
 
     // Live recalculation: at most one request in flight. While it runs, only the
     // newest state is queued, so dragging a slider updates as fast as the server
@@ -306,7 +327,9 @@ export function useRecipeCalculator() {
     );
 
     const loadRecipe = useCallback(
-        (recipe: Recipe, targetProfile?: TargetProfile | null) => {
+        (recipe: Recipe, targetProfile?: TargetProfile | null, { keepHistory = false } = {}) => {
+            // Opening a recipe starts a fresh undo history; Revert keeps it.
+            if (!keepHistory) resetHistoryRef.current = true;
             const nextRows: RecipeRow[] = recipe.ingredients
                 .slice()
                 .sort((a, b) => a.sort_order - b.sort_order)
@@ -329,6 +352,7 @@ export function useRecipeCalculator() {
     );
 
     const clearRecipe = useCallback(() => {
+        resetHistoryRef.current = true;
         pendingRef.current = null;
         clearedGenRef.current = ++genRef.current;
         setRows([]);
@@ -340,8 +364,64 @@ export function useRecipeCalculator() {
 
     // Discard unsaved edits and go back to the last saved version.
     const revertRecipe = useCallback(() => {
-        if (currentRecipe) loadRecipe(currentRecipe, currentRecipe.target_profile ?? null);
+        if (currentRecipe) loadRecipe(currentRecipe, currentRecipe.target_profile ?? null, { keepHistory: true });
     }, [currentRecipe, loadRecipe]);
+
+    // Undo history. Every change to the editor is noticed here, whichever action
+    // made it; a burst of changes (a drag) is one step, recorded as the state
+    // before the burst began.
+    const [historySize, setHistorySize] = useState({ past: 0, future: 0 });
+    useEffect(() => {
+        const h = historyRef.current;
+        const now: EditorState = { rows, profile, servingMethod };
+        if (resetHistoryRef.current || !h.current) {
+            resetHistoryRef.current = false;
+            h.past = [];
+            h.future = [];
+        } else if (applyingRef.current) {
+            // This change is an undo or redo landing; it's not a new step.
+        } else {
+            const t = Date.now();
+            if (t - h.lastAt > UNDO_COALESCE_MS) {
+                h.past.push(h.current);
+                if (h.past.length > UNDO_LIMIT) h.past.shift();
+            }
+            h.future = [];
+            h.lastAt = t;
+        }
+        applyingRef.current = false;
+        h.current = now;
+        setHistorySize({ past: h.past.length, future: h.future.length });
+    }, [rows, profile, servingMethod]);
+
+    const applyState = useCallback(
+        (s: EditorState) => {
+            applyingRef.current = true;
+            // The next edit starts a new step rather than joining this one.
+            historyRef.current.lastAt = 0;
+            setRows(s.rows);
+            setProfile(s.profile);
+            setServingMethod(s.servingMethod);
+            triggerCalculate(s.rows, s.profile, s.servingMethod);
+        },
+        [triggerCalculate]
+    );
+
+    const undo = useCallback(() => {
+        const h = historyRef.current;
+        const prev = h.past.pop();
+        if (!prev || !h.current) return;
+        h.future.push(h.current);
+        applyState(prev);
+    }, [applyState]);
+
+    const redo = useCallback(() => {
+        const h = historyRef.current;
+        const next = h.future.pop();
+        if (!next || !h.current) return;
+        h.past.push(h.current);
+        applyState(next);
+    }, [applyState]);
 
     // Save the editor as a new recipe. As a duplicate, it keeps the open
     // recipe's notes and links back to it. Returns the saved recipe, if any.
@@ -493,6 +573,10 @@ export function useRecipeCalculator() {
         loadRecipe,
         clearRecipe,
         revertRecipe,
+        undo,
+        redo,
+        canUndo: historySize.past > 0,
+        canRedo: historySize.future > 0,
         saveAsNewRecipe,
         saveCurrentRecipe,
         updateTags,
