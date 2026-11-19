@@ -70,6 +70,7 @@ export function useRecipeCalculator() {
     // newest state is queued, so dragging a slider updates as fast as the server
     // answers without piling up requests. `gen` discards responses that were
     // overtaken by clearing the recipe.
+    const heldProfileRef = useRef<TargetProfile | null>(null);
     const pendingRef = useRef<{
         rows: RecipeRow[];
         profile: TargetProfile | null;
@@ -130,7 +131,9 @@ export function useRecipeCalculator() {
             }
             pendingRef.current = {
                 rows: weighed,
-                profile: nextProfile,
+                // While a drag holds the auto-matched style, judge against it
+                // rather than re-matching on every move.
+                profile: nextProfile ?? heldProfileRef.current,
                 serving: nextServing === undefined ? servingRef.current : nextServing,
                 gen,
             };
@@ -178,6 +181,16 @@ export function useRecipeCalculator() {
                 triggerCalculate(next, profile);
                 return next;
             });
+        },
+        [profile, triggerCalculate]
+    );
+
+    // Hold the auto-matched style fixed (e.g. while dragging a balance marker),
+    // so rows don't appear or vanish mid-drag; null releases it.
+    const holdProfile = useCallback(
+        (p: TargetProfile | null) => {
+            heldProfileRef.current = p;
+            if (!p) triggerCalculate(rowsRef.current, profile);
         },
         [profile, triggerCalculate]
     );
@@ -423,6 +436,7 @@ export function useRecipeCalculator() {
         setWeights,
         lockedKeys,
         toggleLock,
+        holdProfile,
         requestBalance,
         changeProfile,
         changeServingMethod,

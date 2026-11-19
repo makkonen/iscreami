@@ -1,7 +1,7 @@
 import type { Ingredient, MetricComparison } from "../types";
 
 /** Per-100 g value of each judged metric for an ingredient. */
-const METRIC_VALUE: Record<string, (i: Ingredient) => number> = {
+export const METRIC_VALUE: Record<string, (i: Ingredient) => number> = {
   pac: (i) => i.pac,
   sweetness: (i) => i.pod,
   total_solids: (i) => i.total_solids_pct,

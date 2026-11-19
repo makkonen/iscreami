@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { IceCreamCone, Scale } from "lucide-react";
 import { BalanceModal } from "./BalanceModal";
-import { keyFor } from "../hooks/useRecipeCalculator";
+import { keyFor, type RecipeRow } from "../hooks/useRecipeCalculator";
+import type { TargetProfile } from "../types";
 import { fetchProfiles, fetchRecipe, fetchServingMethods } from "../api";
 import { useRecipeCalculator } from "../hooks/useRecipeCalculator";
 import { CompositionTable } from "./CompositionTable";
 import { FreezingSection } from "./FreezingSection";
 import { IngredientPanel } from "./IngredientPanel";
 import { IngredientSearch } from "./IngredientSearch";
-import { MetricCards } from "./MetricCards";
+import { MetricCards, type MetricDragHandlers } from "./MetricCards";
+import { isDraggableMetric, weightsForTarget } from "../lib/metricDrag";
 import { FREEZE_METRIC_LABELS, type FreezeMetric, isTargeted, visibleComparisons } from "../lib/metrics";
 import { withServing } from "../lib/serving";
 import { NutritionTable } from "./NutritionTable";
@@ -44,6 +46,7 @@ export function CalculatorView() {
     setWeights,
     lockedKeys,
     toggleLock,
+    holdProfile,
     requestBalance,
     loadRecipe,
     revertRecipe,
@@ -87,8 +90,10 @@ export function CalculatorView() {
     }
   }
   // A manually chosen profile wins; otherwise use the server's best-fit suggestion.
+  // The style a marker drag is holding fixed (see holdProfile).
+  const [heldProfile, setHeldProfile] = useState<TargetProfile | null>(null);
   const suggestedProfile =
-    (!profile && profiles?.find((p) => p.id === result?.suggested_profile_id)) || null;
+    (!profile && (heldProfile ?? profiles?.find((p) => p.id === result?.suggested_profile_id))) || null;
   const effectiveProfile = profile ?? suggestedProfile;
 
   // Ingredients outside their typical use, as % of the mix; live with the sliders.
@@ -104,6 +109,31 @@ export function CalculatorView() {
       return [`${r.ingredient.name}: ${pct.toFixed(pct < 1 ? 3 : 1)}% of mix (typical use at least ${lo}%)`];
     return [];
   });
+
+  // Dragging a balance marker: the ingredients that raise that metric scale
+  // together from the weights at the start of the drag (so it doesn't drift).
+  const dragBase = useRef<RecipeRow[] | null>(null);
+  const metricDrag: MetricDragHandlers = {
+    isDraggable: isDraggableMetric,
+    start: () => {
+      dragBase.current = rows;
+      if (!profile && suggestedProfile) {
+        setHeldProfile(suggestedProfile);
+        holdProfile(suggestedProfile);
+      }
+    },
+    move: (metric, value) => {
+      const weights = weightsForTarget(dragBase.current ?? rows, lockedKeys, metric, value);
+      if (weights) setWeights(weights);
+    },
+    end: () => {
+      dragBase.current = null;
+      if (heldProfile || (!profile && suggestedProfile)) {
+        setHeldProfile(null);
+        holdProfile(null);
+      }
+    },
+  };
 
   const shownComparisons = result?.target_comparison
     ? visibleComparisons(result.target_comparison, freezeMetric)
@@ -269,7 +299,11 @@ export function CalculatorView() {
                         </div>
                       </div>
                     </div>
-                    <MetricCards comparisons={result.target_comparison} freezeMetric={freezeMetric} />
+                    <MetricCards
+                      comparisons={result.target_comparison}
+                      freezeMetric={freezeMetric}
+                      onDragMetric={metricDrag}
+                    />
                     {usageWarnings.length > 0 && (
                       <ul className="mt-3 space-y-1 border-t border-base-200 pt-2 text-xs text-amber-700 dark:text-amber-400">
                         {usageWarnings.map((w) => (

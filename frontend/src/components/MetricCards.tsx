@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { type CSSProperties, type KeyboardEvent, type PointerEvent, useRef, useState } from "react";
 import type { MetricComparison, MetricStatus } from "../types";
 import { InfoIcon } from "./InfoIcon";
 import { TOOLTIPS } from "../lib/tooltips";
@@ -70,14 +70,31 @@ function hueFor(score: number): number {
 
 // ─── Gauge bar ────────────────────────────────────────────────────────────────
 
+/** Live drag of a metric's marker: the recipe follows the dragged value. */
+export interface MetricDragHandlers {
+  readonly isDraggable: (metric: string) => boolean;
+  readonly start: (metric: string) => void;
+  readonly move: (metric: string, value: number) => void;
+  readonly end: () => void;
+}
+
 interface GaugeBarProps {
   readonly value: number;
   readonly targetMin: number | null;
   readonly targetMax: number | null;
   readonly hue: number;
+  readonly label: string;
+  /** When set, the marker can be dragged (pointer or arrow keys). */
+  readonly onDrag?: { start: () => void; move: (value: number) => void; end: () => void };
 }
 
-function GaugeBar({ value, targetMin, targetMax, hue }: GaugeBarProps) {
+function GaugeBar({ value, targetMin, targetMax, hue, label, onDrag }: GaugeBarProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  // While dragging, the scale is frozen and the marker follows the pointer, so
+  // the track doesn't rescale under the cursor as the recipe catches up.
+  const [frozen, setFrozen] = useState<{ min: number; max: number } | null>(null);
+  const [dragValue, setDragValue] = useState<number | null>(null);
+
   // No target for this style: keep the grid cell so the row stays aligned.
   if (targetMin == null && targetMax == null) return <div aria-hidden="true" />;
 
@@ -88,18 +105,61 @@ function GaugeBar({ value, targetMin, targetMax, hue }: GaugeBarProps) {
   const hi = Math.max(...allValues);
   const span = Math.max(hi - lo, 1);
   const pad = span * 0.38 + 0.5;
-  const scaleMin = lo - pad;
-  const scaleMax = hi + pad;
+  const scaleMin = frozen?.min ?? lo - pad;
+  const scaleMax = frozen?.max ?? hi + pad;
   const scaleRange = scaleMax - scaleMin;
 
   const toPos = (v: number) => ((v - scaleMin) / scaleRange) * 100;
 
-  const valuePos = toPos(value);
+  const shown = dragValue ?? value;
+  const valuePos = toPos(shown);
   const zoneLeft = toPos(targetMin ?? scaleMin);
   const zoneRight = toPos(targetMax ?? scaleMax);
 
-  return (
-    <div className="relative h-2 rounded-full bg-base-300" aria-hidden="true">
+  const valueAt = (clientX: number, min: number, max: number) => {
+    const rect = trackRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0) return value;
+    const frac = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+    return min + frac * (max - min);
+  };
+  const begin = (e: PointerEvent<HTMLDivElement>) => {
+    if (!onDrag) return;
+    try {
+      // Keep receiving moves when the pointer leaves the track.
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Not every pointer can be captured; the drag still works within the track.
+    }
+    const scale = { min: scaleMin, max: scaleMax };
+    setFrozen(scale);
+    onDrag.start();
+    const v = valueAt(e.clientX, scale.min, scale.max);
+    setDragValue(v);
+    onDrag.move(v);
+  };
+  const drag = (e: PointerEvent<HTMLDivElement>) => {
+    if (!onDrag || !frozen) return;
+    const v = valueAt(e.clientX, frozen.min, frozen.max);
+    setDragValue(v);
+    onDrag.move(v);
+  };
+  const finish = () => {
+    if (!frozen) return;
+    setFrozen(null);
+    setDragValue(null);
+    onDrag?.end();
+  };
+  const nudge = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!onDrag || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+    e.preventDefault();
+    const step = (scaleMax - scaleMin) / 50;
+    onDrag.start();
+    onDrag.move(value + (e.key === "ArrowRight" ? step : -step));
+    onDrag.end();
+  };
+
+  const track = (
+    <div ref={trackRef} className="relative h-2 rounded-full bg-base-300" aria-hidden="true">
       {/* Target zone: green at the centre, amber toward the edges */}
       <div
         className="absolute inset-y-0 rounded-full border border-base-content/20"
@@ -114,12 +174,36 @@ function GaugeBar({ value, targetMin, targetMax, hue }: GaugeBarProps) {
       />
       {/* Current-value marker */}
       <div
-        className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-3.5 h-3.5 rounded-full ring-2 ring-base-100 shadow transition-[left,background-color] duration-150"
+        className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full ring-2 ring-base-100 shadow ${
+          frozen ? "w-4 h-4" : "w-3.5 h-3.5 transition-[left,background-color] duration-150"
+        }`}
         style={{
           left: `${Math.max(2, Math.min(98, valuePos))}%`,
           backgroundColor: `hsl(${hue} 75% 48%)`,
         }}
       />
+    </div>
+  );
+
+  if (!onDrag) return track;
+  // A taller hit area around the thin track makes the marker easy to grab.
+  return (
+    <div
+      role="slider"
+      tabIndex={0}
+      aria-label={`Drag to adjust ${label}`}
+      aria-valuenow={Number(shown.toFixed(2))}
+      aria-valuemin={Number(scaleMin.toFixed(2))}
+      aria-valuemax={Number(scaleMax.toFixed(2))}
+      title="Drag to adjust: the ingredients that raise it scale up or down together"
+      className="py-1.5 cursor-ew-resize touch-none rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+      onPointerDown={begin}
+      onPointerMove={drag}
+      onPointerUp={finish}
+      onPointerCancel={finish}
+      onKeyDown={nudge}
+    >
+      {track}
     </div>
   );
 }
@@ -129,6 +213,7 @@ function GaugeBar({ value, targetMin, targetMax, hue }: GaugeBarProps) {
 interface MetricCardsProps {
   readonly comparisons: MetricComparison[] | null;
   readonly freezeMetric: FreezeMetric;
+  readonly onDragMetric?: MetricDragHandlers;
 }
 
 function toFahrenheit(c: MetricComparison): MetricComparison {
@@ -144,7 +229,7 @@ function rangeText(c: MetricComparison, unit: string): string {
 }
 
 /** Compact one-line-per-metric view, so every target fits on screen at once. */
-export function MetricCards({ comparisons, freezeMetric }: MetricCardsProps) {
+export function MetricCards({ comparisons, freezeMetric, onDragMetric }: MetricCardsProps) {
   if (!comparisons || comparisons.length === 0) return null;
 
   return (
@@ -166,7 +251,22 @@ export function MetricCards({ comparisons, freezeMetric }: MetricCardsProps) {
               <span className="text-sm font-medium text-base-content/85 truncate">{label}</span>
               <InfoIcon label={tooltip} position="bottom" />
             </div>
-            <GaugeBar value={c.value} targetMin={c.target_min} targetMax={c.target_max} hue={hue} />
+            <GaugeBar
+              value={c.value}
+              targetMin={c.target_min}
+              targetMax={c.target_max}
+              hue={hue}
+              label={label}
+              onDrag={
+                onDragMetric && !inF && onDragMetric.isDraggable(c.metric)
+                  ? {
+                      start: () => onDragMetric.start(c.metric),
+                      move: (v) => onDragMetric.move(c.metric, v),
+                      end: onDragMetric.end,
+                    }
+                  : undefined
+              }
+            />
             <span
               className={`text-sm font-bold tabular-nums text-right transition-colors duration-150 ${
                 untargeted
