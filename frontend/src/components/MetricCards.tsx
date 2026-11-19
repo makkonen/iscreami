@@ -233,7 +233,7 @@ export function MetricCards({ comparisons, freezeMetric, onDragMetric }: MetricC
   if (!comparisons || comparisons.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-[minmax(0,8rem)_minmax(0,1fr)_4.5rem_4.75rem] items-center gap-x-3 gap-y-2.5">
+    <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,8rem)_minmax(0,1fr)_4.5rem_4.75rem] items-center gap-x-3 gap-y-2.5">
       {visibleComparisons(comparisons, freezeMetric).map((raw) => {
         const inF = raw.metric === "serving_temp" && freezeMetric === "serving_temp_f";
         const c = inF ? toFahrenheit(raw) : raw;
@@ -246,11 +246,17 @@ export function MetricCards({ comparisons, freezeMetric, onDragMetric }: MetricC
         const tooltip = METRIC_TOOLTIPS[c.metric] ?? label;
 
         return (
-          <div key={c.metric} className="contents">
+          // On phones each metric is its own small grid: label, value and range on
+          // one line with the bar full width beneath.
+          <div
+            key={c.metric}
+            className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.75rem] items-center gap-x-3 gap-y-1 sm:contents"
+          >
             <div className="flex items-center gap-1 min-w-0">
               <span className="text-sm font-medium text-base-content/85 truncate">{label}</span>
               <InfoIcon label={tooltip} position="bottom" />
             </div>
+            <div className="col-span-full order-last sm:order-none sm:col-span-1">
             <GaugeBar
               value={c.value}
               targetMin={c.target_min}
@@ -267,6 +273,7 @@ export function MetricCards({ comparisons, freezeMetric, onDragMetric }: MetricC
                   : undefined
               }
             />
+            </div>
             <span
               className={`text-sm font-bold tabular-nums text-right transition-colors duration-150 ${
                 untargeted

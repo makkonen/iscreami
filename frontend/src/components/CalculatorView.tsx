@@ -268,7 +268,7 @@ export function CalculatorView() {
               <>
                 {shownComparisons ? (
                   <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4 lg:sticky lg:top-2 lg:z-10">
-                    <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
                       <h2 className="text-sm font-semibold uppercase tracking-wider text-base-content/50">
                         Recipe Balance
                         {effectiveProfile && (
@@ -278,8 +278,8 @@ export function CalculatorView() {
                           </span>
                         )}
                       </h2>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs tabular-nums text-base-content/60">
+                      <div className="flex items-center gap-3 ml-auto">
+                        <span className="text-xs tabular-nums text-base-content/60 whitespace-nowrap">
                           {loading && <span className="loading loading-dots loading-xs mr-2 align-middle" />}
                           {shownComparisons.filter((c) => isTargeted(c) && c.status === "in_range").length}/
                           {shownComparisons.filter(isTargeted).length} in range

@@ -318,7 +318,7 @@ export function IngredientsView() {
                       );
                     })()}
                   </td>
-                  <td className="px-4 py-2.5 text-right tabular-nums">
+                  <td className="px-4 py-2.5 text-right tabular-nums whitespace-nowrap">
                     {fmtEnergy(ing.energy_kj_per_100g)}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">

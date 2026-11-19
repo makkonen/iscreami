@@ -277,7 +277,8 @@ export function IngredientPanel({
     const name = row.ingredient.name;
     return (
       <div className={`${GRID} gap-y-1 items-center px-2 py-1.5 rounded hover:bg-base-200/50`}>
-        <div className="min-w-0">
+        {/* On phones the name takes its own line, with the slider beside the grams below it. */}
+        <div className="min-w-0 col-span-full sm:col-span-1">
           <span className="text-sm font-medium flex items-start gap-1" title={name}>
             <button
               type="button"
@@ -308,7 +309,7 @@ export function IngredientPanel({
             <span className="text-xs text-base-content/40">{row.ingredient.category.name}</span>
           )}
         </div>
-        <div className="relative flex items-center order-last col-span-full sm:order-none sm:col-span-1">
+        <div className="relative flex items-center">
           <input
             type="range"
             min={0}
