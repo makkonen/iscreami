@@ -200,7 +200,10 @@ class Recipe(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(Text, nullable=False)
+    # Free-form notes about the recipe (shown as "Notes").
     description: Mapped[str | None] = mapped_column(Text)
+    # How to make it, for recipes that need more than mixing and freezing.
+    instructions: Mapped[str | None] = mapped_column(Text)
     recipe_type: Mapped[str | None] = mapped_column(Text)
     # How it will be served (e.g. eat right away, scoop later); sets the freezing target.
     serving_method: Mapped[str | None] = mapped_column(Text)

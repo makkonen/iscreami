@@ -119,6 +119,7 @@ def create_recipe(data: RecipeCreate, db: DbSession):
     recipe = Recipe(
         name=data.name,
         description=data.description,
+        instructions=data.instructions,
         recipe_type=data.recipe_type,
         serving_method=data.serving_method,
         target_profile_id=data.target_profile_id,

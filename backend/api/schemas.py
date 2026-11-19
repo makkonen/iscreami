@@ -186,6 +186,7 @@ class TargetProfileOut(TargetProfileBase):
 # --- Recipe ---
 
 MAX_RECIPE_TAGS = 30
+MAX_RECIPE_TEXT = 20000  # notes and instructions
 
 
 def normalize_tags(tags: list[str] | None) -> list[str] | None:
@@ -223,7 +224,8 @@ class RecipeIngredientOut(BaseModel):
 
 class RecipeCreate(BaseModel):
     name: str = Field(max_length=255)
-    description: str | None = Field(default=None, max_length=2000)
+    description: str | None = Field(default=None, max_length=MAX_RECIPE_TEXT)
+    instructions: str | None = Field(default=None, max_length=MAX_RECIPE_TEXT)
     recipe_type: str | None = Field(default=None, max_length=100)
     serving_method: str | None = Field(default=None, max_length=50)
     target_profile_id: uuid.UUID | None = None
@@ -238,7 +240,8 @@ class RecipeCreate(BaseModel):
 
 class RecipeUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=255)  # type: ignore[assignment]
-    description: str | None = Field(default=None, max_length=2000)
+    description: str | None = Field(default=None, max_length=MAX_RECIPE_TEXT)
+    instructions: str | None = Field(default=None, max_length=MAX_RECIPE_TEXT)
     recipe_type: str | None = Field(default=None, max_length=100)
     serving_method: str | None = Field(default=None, max_length=50)
     target_profile_id: uuid.UUID | None = None
@@ -255,6 +258,7 @@ class RecipeOut(BaseModel):
     id: uuid.UUID
     name: str
     description: str | None = None
+    instructions: str | None = None
     recipe_type: str | None = None
     serving_method: str | None = None
     target_profile_id: uuid.UUID | None = None
@@ -458,6 +462,7 @@ class RecipeExportOut(BaseModel):
     id: str
     name: str
     description: str | None = None
+    instructions: str | None = None
     recipe_type: str | None = None
     serving_method: str | None = None
     tags: list[str] = []

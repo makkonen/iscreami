@@ -37,6 +37,9 @@ interface RecipeIngredientInput {
 }
 
 // Rows are persisted in display order; sort_order mirrors the array index.
+/** Recipe fields that save on their own, outside the mix's unsaved edits. */
+export type RecipeDetails = Partial<Pick<Recipe, "name" | "description" | "instructions" | "tags">>;
+
 /** The parts of the editor that undo and redo step through. */
 interface EditorState {
     rows: RecipeRow[];
@@ -432,6 +435,7 @@ export function useRecipeCalculator() {
                 const saved = await createRecipe({
                     name,
                     description: duplicate ? (currentRecipe?.description ?? null) : null,
+                    instructions: duplicate ? (currentRecipe?.instructions ?? null) : null,
                     parent_id: duplicate ? (currentRecipe?.id ?? null) : null,
                     // A variant starts its own testing, so status tags stay behind.
                     tags: duplicate
@@ -477,23 +481,31 @@ export function useRecipeCalculator() {
         }
     }, [currentRecipe, rows, profile, servingMethod, addToast, qc]);
 
-    // Tags save straight away, separately from the recipe's unsaved edits.
-    const updateTags = useCallback(
-        async (tags: string[]) => {
-            if (!currentRecipe) return;
-            const { id, tags: before } = currentRecipe;
-            const withTags = (next: string[] | undefined) => (r: Recipe | null | undefined) =>
-                r && r.id === id ? { ...r, tags: next } : r;
-            // Show them at once, so a second tag added before this one saves builds on it.
-            setCurrentRecipe((r) => withTags(tags)(r) ?? null);
+    // Name, notes, method and tags save straight away, separately from the
+    // recipe's unsaved edits to the mix. Returns whether it saved.
+    const updateDetails = useCallback(
+        async (patch: RecipeDetails): Promise<boolean> => {
+            if (!currentRecipe) return false;
+            const id = currentRecipe.id;
+            const before = Object.fromEntries(
+                Object.keys(patch).map((k) => [k, currentRecipe[k as keyof RecipeDetails]])
+            ) as RecipeDetails;
+            const merge = (p: RecipeDetails) => (r: Recipe | null | undefined) => (r && r.id === id ? { ...r, ...p } : r);
+            // Show it at once, so a second tag added before this one saves builds on it.
+            setCurrentRecipe((r) => merge(patch)(r) ?? null);
             try {
-                const saved = await apiUpdateRecipe(id, { tags });
-                setCurrentRecipe((r) => withTags(saved.tags)(r) ?? null);
-                qc.setQueryData<Recipe>(["recipe", id], (r) => withTags(saved.tags)(r) ?? undefined);
+                const saved = await apiUpdateRecipe(id, patch);
+                const fromServer = Object.fromEntries(
+                    Object.keys(patch).map((k) => [k, saved[k as keyof RecipeDetails]])
+                ) as RecipeDetails;
+                setCurrentRecipe((r) => merge(fromServer)(r) ?? null);
+                qc.setQueryData<Recipe>(["recipe", id], (r) => merge(fromServer)(r) ?? undefined);
                 qc.invalidateQueries({ queryKey: ["recipes"] });
+                return true;
             } catch (err) {
-                setCurrentRecipe((r) => withTags(before)(r) ?? null);
-                addToast(errorMessage(err, "Failed to save tags."), "error");
+                setCurrentRecipe((r) => merge(before)(r) ?? null);
+                addToast(errorMessage(err, "Failed to save."), "error");
+                return false;
             }
         },
         [currentRecipe, addToast, qc]
@@ -579,7 +591,7 @@ export function useRecipeCalculator() {
         canRedo: historySize.future > 0,
         saveAsNewRecipe,
         saveCurrentRecipe,
-        updateTags,
+        updateDetails,
         deleteCurrentRecipe,
     };
 }

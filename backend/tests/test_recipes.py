@@ -89,3 +89,24 @@ class TestRecipeTags:
         )
         assert updated.tags == ["Status/Keeper"]
         assert updated.name == "Tagged"
+
+
+class TestRecipeText:
+    """Notes and instructions are separate and can be edited on their own."""
+
+    def test_instructions_and_notes(self, test_db):
+        from api.routes.recipes import create_recipe, update_recipe
+        from api.schemas import RecipeCreate, RecipeUpdate
+
+        recipe = create_recipe(
+            RecipeCreate(name="Pistachio", description="Notes", instructions="Steep"),
+            test_db,
+        )
+        assert (recipe.description, recipe.instructions) == ("Notes", "Steep")
+        updated = update_recipe(
+            recipe.id, RecipeUpdate(instructions="Steep overnight"), test_db
+        )
+        assert (updated.description, updated.instructions) == (
+            "Notes",
+            "Steep overnight",
+        )

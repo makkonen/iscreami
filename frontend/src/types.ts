@@ -229,6 +229,8 @@ export interface Recipe {
     serving_method?: string | null;
     target_profile_id: string | null;
     target_profile: TargetProfile | null;
+    /** How to make it, when it needs more than mixing and freezing. */
+    instructions?: string | null;
     /** The recipe this one was duplicated from. */
     parent_id?: string | null;
     /** "/" nests tags, e.g. "Status/Retired". */

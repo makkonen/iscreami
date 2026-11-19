@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { IceCreamCone, Redo2, Scale, Undo2 } from "lucide-react";
 import { BalanceModal } from "./BalanceModal";
 import { BatchLog } from "./BatchLog";
+import { RecipeText } from "./RecipeText";
 import { keyFor, type RecipeRow } from "../hooks/useRecipeCalculator";
 import type { BatchSnapshot, Ingredient, TargetProfile } from "../types";
 import { fetchIngredient, fetchProfiles, fetchRecipe, fetchRecipes, fetchServingMethods } from "../api";
@@ -60,7 +61,7 @@ export function CalculatorView() {
     canUndo,
     canRedo,
     saveAsNewRecipe,
-    updateTags,
+    updateDetails,
     saveCurrentRecipe,
     deleteCurrentRecipe,
   } = useRecipeCalculator();
@@ -289,7 +290,8 @@ export function CalculatorView() {
             variants={variants}
             tags={currentRecipe?.tags ?? []}
             allTags={allTags}
-            onChangeTags={(tags) => void updateTags(tags)}
+            onChangeTags={(tags) => void updateDetails({ tags })}
+            onRename={(name) => updateDetails({ name })}
             onChangeProfile={changeProfile}
           />
         </div>
@@ -360,6 +362,17 @@ export function CalculatorView() {
                 />
               </div>
             </div>
+
+            {currentRecipe && (
+              <div className="mt-6">
+                <RecipeText
+                  key={currentRecipe.id}
+                  notes={currentRecipe.description ?? null}
+                  instructions={currentRecipe.instructions ?? null}
+                  onSave={updateDetails}
+                />
+              </div>
+            )}
 
             {currentRecipe && (
               <div className="mt-6">

@@ -1,6 +1,7 @@
 import { Copy, GitBranch, RotateCcw, Save, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { TagEditor } from "./TagEditor";
+import { RecipeName } from "./RecipeName";
 import type { CalculateResponse, Recipe, ServingMethod, TargetProfile } from "../types";
 import { Tooltip } from "./Tooltip";
 import { TOOLTIPS } from "../lib/tooltips";
@@ -205,6 +206,8 @@ interface RecipeHeaderProps {
   /** Every tag in use, for suggestions. */
   readonly allTags?: readonly string[];
   readonly onChangeTags?: (tags: string[]) => void;
+  /** Saves a new name; resolves to whether it saved. */
+  readonly onRename?: (name: string) => Promise<boolean>;
 }
 
 export function RecipeHeader({
@@ -230,6 +233,7 @@ export function RecipeHeader({
   tags = [],
   allTags = [],
   onChangeTags,
+  onRename,
 }: RecipeHeaderProps) {
   const effectiveProfile = targetProfile ?? suggestedProfile;
   // The serving method actually applied (chosen, or the profile's usual one).
@@ -249,7 +253,9 @@ export function RecipeHeader({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl sm:text-3xl font-bold text-base-content mb-1">
-              {recipeName ? (
+              {recipeName && onRename ? (
+                <RecipeName name={recipeName} onRename={onRename} />
+              ) : recipeName ? (
                 <span>{recipeName}</span>
               ) : (
                 <span className="text-base-content/40 italic">Unsaved recipe</span>

@@ -102,6 +102,7 @@ export function fetchRecipe(id: string): Promise<Recipe> {
 export function createRecipe(data: {
     name: string;
     description?: string | null;
+    instructions?: string | null;
     parent_id?: string | null;
     tags?: string[];
     target_profile_id?: string | null;
@@ -115,6 +116,8 @@ export function updateRecipe(
     id: string,
     data: {
         name?: string;
+        description?: string | null;
+        instructions?: string | null;
         tags?: string[];
         target_profile_id?: string | null;
         serving_method?: string | null;
