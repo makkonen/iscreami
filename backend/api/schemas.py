@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
@@ -269,6 +269,59 @@ class RecipeOut(BaseModel):
     @property
     def total_weight_grams(self) -> float:
         return sum(ingredient.weight_grams for ingredient in self.ingredients)
+
+
+# --- Batches ---
+
+
+class BatchIngredient(BaseModel):
+    ingredient_id: uuid.UUID
+    name: str = Field(max_length=255)
+    weight_grams: float = Field(ge=0)
+    is_addin: bool = False
+
+
+class BatchSnapshot(BaseModel):
+    """What went into a batch, and its key metrics, as made."""
+
+    ingredients: list[BatchIngredient] = Field(max_length=MAX_RECIPE_INGREDIENTS)
+    # e.g. pac, pod, serving_temp_c, frozen_pct, protein_pct, kcal_per_100g.
+    metrics: dict[str, float | None] = Field(default_factory=dict, max_length=40)
+    profile_name: str | None = Field(default=None, max_length=255)
+
+
+class BatchBase(BaseModel):
+    made_on: date
+    serving_method: str | None = Field(default=None, max_length=50)
+    hardness: int | None = Field(default=None, ge=-2, le=2)
+    sweetness: int | None = Field(default=None, ge=-2, le=2)
+    iciness: int | None = Field(default=None, ge=0, le=3)
+    overall: int | None = Field(default=None, ge=1, le=5)
+    notes: str | None = Field(default=None, max_length=5000)
+
+
+class BatchCreate(BatchBase):
+    snapshot: BatchSnapshot
+
+
+class BatchUpdate(BaseModel):
+    """Ratings and notes can be revised; what went in can't."""
+
+    made_on: date | None = None
+    serving_method: str | None = Field(default=None, max_length=50)
+    hardness: int | None = Field(default=None, ge=-2, le=2)
+    sweetness: int | None = Field(default=None, ge=-2, le=2)
+    iciness: int | None = Field(default=None, ge=0, le=3)
+    overall: int | None = Field(default=None, ge=1, le=5)
+    notes: str | None = Field(default=None, max_length=5000)
+
+
+class BatchOut(BatchBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    recipe_id: uuid.UUID
+    snapshot: BatchSnapshot
+    created_at: datetime
 
 
 class PaginatedRecipes(BaseModel):

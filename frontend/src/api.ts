@@ -5,11 +5,14 @@ import type {
     BalanceResponse,
     CalculateRequest,
     CalculateResponse,
+    BatchRatings,
+    BatchSnapshot,
     Ingredient,
     IngredientCategory,
     IngredientInput,
     PaginatedIngredients,
     Recipe,
+    RecipeBatch,
     RecipeExport,
     TargetProfile,
     TargetProfileInput,
@@ -119,6 +122,28 @@ export function updateRecipe(
     }
 ): Promise<Recipe> {
     return request(`/recipes/${id}`, { method: "PUT", body: JSON.stringify(data) });
+}
+
+export function fetchIngredient(id: string): Promise<Ingredient> {
+    return request(`/ingredients/${id}`);
+}
+
+// --- Batches ---
+
+export function fetchBatches(recipeId: string): Promise<RecipeBatch[]> {
+    return request(`/recipes/${recipeId}/batches`);
+}
+
+export function createBatch(recipeId: string, data: BatchRatings & { snapshot: BatchSnapshot }): Promise<RecipeBatch> {
+    return request(`/recipes/${recipeId}/batches`, { method: "POST", body: JSON.stringify(data) });
+}
+
+export function updateBatch(recipeId: string, batchId: string, data: Partial<BatchRatings>): Promise<RecipeBatch> {
+    return request(`/recipes/${recipeId}/batches/${batchId}`, { method: "PUT", body: JSON.stringify(data) });
+}
+
+export function deleteBatch(recipeId: string, batchId: string): Promise<void> {
+    return request(`/recipes/${recipeId}/batches/${batchId}`, { method: "DELETE" });
 }
 
 export function deleteRecipe(id: string): Promise<void> {

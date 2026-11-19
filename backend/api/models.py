@@ -1,11 +1,12 @@
 """SQLAlchemy ORM models for iscreami."""
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy import (
     JSON,
     Boolean,
+    Date,
     DateTime,
     ForeignKey,
     Integer,
@@ -232,6 +233,11 @@ class Recipe(Base):
         cascade="all, delete-orphan",
         order_by="RecipeIngredient.sort_order",
     )
+    batches: Mapped[list["RecipeBatch"]] = relationship(
+        back_populates="recipe",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
 
 
 class RecipeIngredient(Base):
@@ -262,3 +268,38 @@ class RecipeIngredient(Base):
 
     recipe: Mapped[Recipe] = relationship(back_populates="ingredients")
     ingredient: Mapped[Ingredient] = relationship(back_populates="recipe_ingredients")
+
+
+class RecipeBatch(Base):
+    """One time a recipe was made: what went in, and how it turned out."""
+
+    __tablename__ = "recipe_batches"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    recipe_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("recipes.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    made_on: Mapped[date] = mapped_column(Date, nullable=False)
+    serving_method: Mapped[str | None] = mapped_column(Text)
+    # The weights and key metrics as made, which may differ from the saved recipe.
+    snapshot: Mapped[dict] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=False
+    )
+    # -2 far too soft / not sweet enough .. 0 right .. +2 far too hard / sweet.
+    hardness: Mapped[int | None] = mapped_column(Integer)
+    sweetness: Mapped[int | None] = mapped_column(Integer)
+    # 0 smooth .. 3 very icy.
+    iciness: Mapped[int | None] = mapped_column(Integer)
+    # 1..5 overall.
+    overall: Mapped[int | None] = mapped_column(Integer)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+    recipe: Mapped[Recipe] = relationship(back_populates="batches")

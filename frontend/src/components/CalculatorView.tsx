@@ -3,9 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { IceCreamCone, Scale } from "lucide-react";
 import { BalanceModal } from "./BalanceModal";
+import { BatchLog } from "./BatchLog";
 import { keyFor, type RecipeRow } from "../hooks/useRecipeCalculator";
-import type { TargetProfile } from "../types";
-import { fetchProfiles, fetchRecipe, fetchRecipes, fetchServingMethods } from "../api";
+import type { BatchSnapshot, Ingredient, TargetProfile } from "../types";
+import { fetchIngredient, fetchProfiles, fetchRecipe, fetchRecipes, fetchServingMethods } from "../api";
+import { useToast } from "../hooks/useToast";
 import { useRecipeCalculator } from "../hooks/useRecipeCalculator";
 import { CompositionTable } from "./CompositionTable";
 import { FreezingSection } from "./FreezingSection";
@@ -46,6 +48,7 @@ export function CalculatorView() {
     moveRow,
     sortByAmount,
     setWeights,
+    replaceRows,
     lockedKeys,
     toggleLock,
     holdProfile,
@@ -202,6 +205,28 @@ export function CalculatorView() {
     if (e.key === "Enter") void handleSaveNewConfirm();
   }
 
+  // Put a logged batch's weights in the editor, fetching any ingredient it
+  // used that the recipe no longer has.
+  const { addToast } = useToast();
+  async function loadBatchWeights(snapshot: BatchSnapshot) {
+    const known = new Map<string, Ingredient>(rows.map((r) => [r.ingredient.id, r.ingredient]));
+    const next: RecipeRow[] = [];
+    for (const [i, item] of snapshot.ingredients.entries()) {
+      let ingredient = known.get(item.ingredient_id);
+      if (!ingredient) {
+        try {
+          ingredient = await fetchIngredient(item.ingredient_id);
+          known.set(ingredient.id, ingredient);
+        } catch {
+          addToast(`${item.name} no longer exists, so it was left out.`, "error");
+          continue;
+        }
+      }
+      next.push({ ingredient, weight_grams: item.weight_grams, sort_order: i, is_addin: item.is_addin });
+    }
+    replaceRows(next);
+  }
+
   async function handleDeleteConfirm() {
     const deleted = await deleteCurrentRecipe();
     setDeleteConfirmOpen(false);
@@ -282,6 +307,19 @@ export function CalculatorView() {
               </div>
             </div>
 
+            {currentRecipe && (
+              <div className="mt-6">
+                <BatchLog
+                  recipeId={currentRecipe.id}
+                  rows={rows}
+                  result={result}
+                  profileName={effectiveProfile?.name ?? null}
+                  servingMethod={servingMethod ?? result?.serving_method ?? null}
+                  servingMethods={servingMethods ?? []}
+                  onLoadWeights={(s) => void loadBatchWeights(s)}
+                />
+              </div>
+            )}
           </div>
 
           {/* Right: Metrics Dashboard */}

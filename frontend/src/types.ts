@@ -239,6 +239,39 @@ export interface Recipe {
     ingredients: RecipeIngredientOut[];
 }
 
+export interface BatchIngredient {
+    ingredient_id: string;
+    name: string;
+    weight_grams: number;
+    is_addin: boolean;
+}
+
+/** What went into a batch, and its key metrics, as made. */
+export interface BatchSnapshot {
+    ingredients: BatchIngredient[];
+    /** Metric values by name: pac, pod, frozen_pct, serving_temp, protein, kcal_per_100g... */
+    metrics: Record<string, number | null>;
+    profile_name: string | null;
+}
+
+/** Ratings: hardness and sweetness -2..+2 (0 is right), iciness 0..3, overall 1..5. */
+export interface BatchRatings {
+    made_on: string;
+    serving_method: string | null;
+    hardness: number | null;
+    sweetness: number | null;
+    iciness: number | null;
+    overall: number | null;
+    notes: string | null;
+}
+
+export interface RecipeBatch extends BatchRatings {
+    id: string;
+    recipe_id: string;
+    snapshot: BatchSnapshot;
+    created_at: string;
+}
+
 export interface CalculateIngredientInput {
     ingredient_id: string;
     weight_grams: number;

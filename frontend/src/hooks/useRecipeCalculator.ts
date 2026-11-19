@@ -241,6 +241,16 @@ export function useRecipeCalculator() {
         [profile, triggerCalculate]
     );
 
+    // Swap in a whole set of rows (e.g. a logged batch's weights), keeping the
+    // open recipe, so it shows as unsaved changes that Revert undoes.
+    const replaceRows = useCallback(
+        (next: RecipeRow[]) => {
+            setRows(next);
+            triggerCalculate(next, profile);
+        },
+        [profile, triggerCalculate]
+    );
+
     // Row order is the recipe's order: saved with it and restored on Revert.
     const moveRow = useCallback((fromKey: string, toKey: string) => {
         setRows((prev) => {
@@ -473,6 +483,7 @@ export function useRecipeCalculator() {
         moveRow,
         sortByAmount,
         setWeights,
+        replaceRows,
         lockedKeys,
         toggleLock,
         holdProfile,

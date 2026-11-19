@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
     from starlette.types import Receive, Scope, Send
 
-from api.routes import calculate, ingredients, profiles, recipes
+from api.routes import batches, calculate, ingredients, profiles, recipes
 from api.settings import settings
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
@@ -121,6 +121,7 @@ api = FastAPI(title="iscreami API")
 api.include_router(ingredients.router)
 api.include_router(ingredients.cat_router)
 api.include_router(recipes.router)
+api.include_router(batches.router)
 api.include_router(calculate.router)
 api.include_router(profiles.router)
 
