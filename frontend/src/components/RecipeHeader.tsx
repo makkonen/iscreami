@@ -7,7 +7,8 @@ import { Tooltip } from "./Tooltip";
 import { TOOLTIPS } from "../lib/tooltips";
 import { InfoIcon } from "./InfoIcon";
 import { fmtEnergy } from "../lib/formatting";
-import { servingGroups, withServing } from "../lib/serving";
+import { customServingId, findServing, parseCustomServing, servingGroups, textureFor, withServing } from "../lib/serving";
+import { CustomServing } from "./CustomServing";
 import { isTargeted } from "../lib/metrics";
 
 interface StatusPill {
@@ -236,8 +237,9 @@ export function RecipeHeader({
   onRename,
 }: RecipeHeaderProps) {
   const effectiveProfile = targetProfile ?? suggestedProfile;
+  const custom = parseCustomServing(servingMethod);
   // The serving method actually applied (chosen, or the profile's usual one).
-  const inEffect = servingMethods.find((m) => m.id === (servingMethod ?? result?.serving_method));
+  const inEffect = findServing(servingMethod ?? result?.serving_method, servingMethods);
   // Freezing is judged against how it'll be served, not the style's default.
   const judgedProfile = withServing(effectiveProfile, result?.target_comparison);
   const summaryPills = [
@@ -350,8 +352,14 @@ export function RecipeHeader({
               </label>
               <select
                 id="serving-select"
-                value={servingMethod ?? ""}
-                onChange={(e) => onChangeServingMethod(e.target.value || null)}
+                value={custom ? "custom" : (servingMethod ?? "")}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  // Custom starts from whatever is in effect now.
+                  if (v === "custom")
+                    onChangeServingMethod(customServingId(inEffect?.eating_temp_c ?? -14, textureFor(inEffect)));
+                  else onChangeServingMethod(v || null);
+                }}
                 className="select select-sm"
                 title={inEffect?.description}
               >
@@ -367,6 +375,9 @@ export function RecipeHeader({
                     ))}
                   </optgroup>
                 ))}
+                <optgroup label="Custom">
+                  <option value="custom">Custom temperature…</option>
+                </optgroup>
               </select>
             </div>
             <div className="flex items-center gap-2">
@@ -395,6 +406,12 @@ export function RecipeHeader({
               </select>
             </div>
             </div>
+
+            {custom && (
+              <div className="self-start lg:self-end">
+                <CustomServing value={custom} onChange={(t, tex) => onChangeServingMethod(customServingId(t, tex))} />
+              </div>
+            )}
 
             <div className="flex items-center gap-2 flex-wrap">
             <Tooltip content={TOOLTIPS.saveRecipe}>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { findServing } from "../lib/serving";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { fetchProfiles, deleteProfile, fetchServingMethods } from "../api";
@@ -154,7 +155,7 @@ export function ProfilesView() {
                       {fmtRange(profile.total_fat_min, profile.total_fat_max)}
                     </td>
                     <td className="px-4 py-2.5 text-sm tabular-nums">
-                      {servingMethods?.find((m) => m.id === profile.default_serving_method)?.label ?? "—"}
+                      {findServing(profile.default_serving_method, servingMethods ?? [])?.label ?? "—"}
                     </td>
                     <td className="px-4 py-2.5 text-sm tabular-nums">
                       {fmtRange(profile.sweetness_min, profile.sweetness_max)}

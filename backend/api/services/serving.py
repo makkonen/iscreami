@@ -104,9 +104,45 @@ _BY_ID = {m.id: m for m in SERVING_METHODS}
 # Ids used by earlier versions.
 _LEGACY = {"eat_now": "creami_ice_cream", "scoop_later": "freezer"}
 
+# Custom serving: "custom:<eating temp °C>:<texture>", e.g. "custom:-12:scoop".
+# The textures are the frozen-% windows the presets use.
+CUSTOM_PREFIX = "custom:"
+CUSTOM_TEXTURES: dict[str, tuple[str, float, float]] = {
+    "soft": ("soft, as off a spin or churn", 50.0, 64.0),
+    "scoop": ("scoopable", 70.0, 78.0),
+    "firm": ("firm, as a popsicle", 83.0, 90.0),
+}
+CUSTOM_TEMP_RANGE = (-40.0, 0.0)
+
+
+def custom_serving_id(eating_temp_c: float, texture: str) -> str:
+    return f"{CUSTOM_PREFIX}{eating_temp_c:g}:{texture}"
+
+
+def _custom_method(method_id: str) -> ServingMethod | None:
+    try:
+        temp_text, texture = method_id.removeprefix(CUSTOM_PREFIX).split(":")
+        temp = float(temp_text)
+    except ValueError:
+        return None
+    if texture not in CUSTOM_TEXTURES or not (
+        CUSTOM_TEMP_RANGE[0] <= temp <= CUSTOM_TEMP_RANGE[1]
+    ):
+        return None
+    label, lo, hi = CUSTOM_TEXTURES[texture]
+    return ServingMethod(
+        custom_serving_id(temp, texture),
+        f"Custom · {temp:g} °C, {label.split(',')[0]}",
+        "Custom",
+        f"Eaten at {temp:g} °C, {label}: {lo:g}-{hi:g}% frozen.",
+        ServingTarget(temp, lo, hi),
+    )
+
 
 def serving_method(method_id: str | None) -> ServingMethod | None:
     """Look up a serving method by id; None for unknown or missing ids."""
     if not method_id:
         return None
+    if method_id.startswith(CUSTOM_PREFIX):
+        return _custom_method(method_id)
     return _BY_ID.get(_LEGACY.get(method_id, method_id))

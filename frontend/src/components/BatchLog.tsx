@@ -7,6 +7,7 @@ import { useEscape } from "../hooks/useEscape";
 import { useToast } from "../hooks/useToast";
 import { errorMessage } from "../lib/errors";
 import { KJ_PER_KCAL } from "../lib/formatting";
+import { findServing } from "../lib/serving";
 import type { BatchRatings, BatchSnapshot, CalculateResponse, RecipeBatch, ServingMethod } from "../types";
 
 const HARDNESS = ["Much too soft", "A bit soft", "Right", "A bit hard", "Much too hard"];
@@ -82,7 +83,7 @@ export function BatchLog({ recipeId, rows, result, profileName, servingMethod, s
   // null: closed; "new": logging the editor as a new batch; else the batch being edited.
   const [editing, setEditing] = useState<"new" | RecipeBatch | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
-  const labelOf = (id: string | null) => servingMethods.find((m) => m.id === id)?.label;
+  const labelOf = (id: string | null) => findServing(id, servingMethods)?.label;
 
   async function save(ratings: BatchRatings) {
     try {
@@ -303,6 +304,10 @@ function BatchModal({ batch, defaultServing, servingMethods, onSave, onClose }: 
               onChange={(e) => set({ serving_method: e.target.value || null })}
             >
               <option value="">—</option>
+              {/* A custom serving isn't in the list of presets. */}
+              {r.serving_method && !servingMethods.some((m) => m.id === r.serving_method) && (
+                <option value={r.serving_method}>{findServing(r.serving_method, servingMethods)?.label ?? r.serving_method}</option>
+              )}
               {servingMethods.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.label}
