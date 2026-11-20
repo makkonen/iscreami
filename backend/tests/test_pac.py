@@ -161,3 +161,23 @@ class TestRecipePAC:
         # pac_water should be identical
         assert mix1 is not None and mix2 is not None
         assert abs(mix1 - mix2) < 0.01
+
+
+class TestCocoaHardening:
+    """Cocoa butter and cocoa solids lower PAC, even under an override."""
+
+    def test_cocoa_powder_is_negative(self):
+        from api.services.pac import COCOA_STRENGTH
+
+        cocoa = make_ingredient(cocoa_butter_pct=21.0, cocoa_solids_pct=79.0)
+        expected = -(21.0 * 0.9 + 79.0 * 1.8) * COCOA_STRENGTH
+        assert ingredient_pac(cocoa) == pytest.approx(expected)
+
+    def test_applies_on_top_of_override(self):
+        from api.services.pac import cocoa_pac
+
+        choc = make_ingredient(
+            pac_override=30.0, cocoa_butter_pct=42.5, cocoa_solids_pct=27.5
+        )
+        assert ingredient_pac(choc) == pytest.approx(30.0 + cocoa_pac(choc))
+        assert cocoa_pac(choc) < 0

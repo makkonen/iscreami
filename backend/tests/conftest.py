@@ -47,6 +47,8 @@ def make_ingredient(**kwargs):
         "energy_kj_per_100g": None,
         "usage_min_pct": None,
         "usage_max_pct": None,
+        "cocoa_butter_pct": None,
+        "cocoa_solids_pct": None,
     }
     defaults.update(kwargs)
     mock = MagicMock()

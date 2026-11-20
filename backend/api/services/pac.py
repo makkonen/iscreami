@@ -66,17 +66,38 @@ def msnf_for_freezing(ingredient: Ingredient) -> float:
 ETHANOL_PAC_FACTOR = 743.0
 
 
+# Chocolate eats firmer than its sugars predict: cocoa butter is solid at
+# freezer temperatures and cocoa solids take up water. Gelato practice
+# (Corvitto) counts each gram of cocoa butter as -0.9 g of sucrose's
+# anti-freeze effect and each gram of non-fat cocoa solids as -1.8 g. At full
+# strength that read both chocolate recipes here as clearly too firm
+# (including one the Creami targets were calibrated on), so it's applied at
+# half strength until real batches say otherwise.
+COCOA_STRENGTH = 0.5
+COCOA_BUTTER_PAC = -0.9 * 100.0 * COCOA_STRENGTH
+COCOA_SOLIDS_PAC = -1.8 * 100.0 * COCOA_STRENGTH
+
+
+def cocoa_pac(ingredient: Ingredient) -> float:
+    """The (negative) hardening effect of an ingredient's cocoa, per 100 g."""
+    butter = float(getattr(ingredient, "cocoa_butter_pct", None) or 0)
+    solids = float(getattr(ingredient, "cocoa_solids_pct", None) or 0)
+    return (butter * COCOA_BUTTER_PAC + solids * COCOA_SOLIDS_PAC) / 100.0
+
+
 def ingredient_pac(ingredient: Ingredient) -> float:
     """Calculate PAC per 100 g of ingredient.
 
     If the ingredient has a manual override, use that.
     If sugar breakdown fields are present, use advanced mode.
     Otherwise fall back to total_sugar_pct treated as sucrose.
+    Cocoa's hardening applies on top either way (overrides come from sugar
+    tables, which leave it out).
     """
     if ingredient.pac_override is not None:
-        return float(ingredient.pac_override)
+        return float(ingredient.pac_override) + cocoa_pac(ingredient)
 
-    pac = 0.0
+    pac = cocoa_pac(ingredient)
 
     # Sugar contribution (per-sugar breakdown if present, else total_sugar as
     # sucrose) — shared with sweetness.py so the fallback can't drift between
