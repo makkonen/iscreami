@@ -1,9 +1,16 @@
 """USDA FoodData Central importer.
 
-Reads FoodData Central bulk JSON exports (Foundation, Survey, or Branded Foods).
-Download from: https://fdc.nal.usda.gov/download-datasets
+Reads FoodData Central bulk JSON exports (Foundation, SR Legacy, Survey, or
+Branded Foods). Download from: https://fdc.nal.usda.gov/download-datasets
 
-All three export types are supported and auto-detected from the file.
+All four export types are supported and auto-detected from the file.
+
+USDA doesn't record milk fat or MSNF, and often gives only total sugars. For
+plain dairy (milk, cream, butter, yogurt, milk powders) these are estimated:
+milk fat is the total fat, MSNF the remaining solids, and unbroken-down sugar
+is taken as lactose, which is far less sweet than the sucrose it would
+otherwise be counted as. Cheeses, eggs, and sweetened or flavoured products
+are left as USDA gives them.
 Uses streaming JSON parsing (ijson) so even the 3 GB Branded Foods file
 is processed without loading everything into memory at once.
 """
@@ -27,7 +34,43 @@ if TYPE_CHECKING:
     from api.models import Ingredient
 
 # Top-level JSON array keys for each FDC export type
-DATASET_KEYS = {"FoundationFoods", "SurveyFoods", "BrandedFoods"}
+DATASET_KEYS = {"FoundationFoods", "SRLegacyFoods", "SurveyFoods", "BrandedFoods"}
+
+# Usual nutrient id -> ids to use instead, in order, when it's missing.
+FALLBACK_NUTRIENT_IDS: dict[int, tuple[int, ...]] = {
+    1008: (2048, 2047),  # Energy (kcal) <- Atwater specific, then general
+    2000: (1063,),  # Sugars, total including NLEA <- Sugars, Total
+}
+
+SUGAR_BREAKDOWN = (
+    "sucrose_pct",
+    "glucose_pct",
+    "fructose_pct",
+    "lactose_pct",
+    "maltose_pct",
+    "galactose_pct",
+)
+# Dairy that isn't plain milk solids: cheese loses whey, the rest add other solids.
+NOT_PLAIN_DAIRY = (
+    "cheese",
+    "egg",
+    "imitation",
+    "substitute",
+    "nondairy",
+    "non-dairy",
+    "sweetened",
+    "chocolate",
+    "flavored",
+    "flavoured",
+    "fruit",
+    "dessert",
+    "ice cream",
+    "frozen",
+    "pudding",
+    "eggnog",
+    "malted",
+    "shake",
+)
 
 # USDA nutrient IDs → iscreami fields
 NUTRIENT_ID_MAP: dict[int, str] = {
@@ -107,6 +150,19 @@ KEYWORD_CATEGORY: list[tuple[list[str], str]] = [
 ]
 
 
+def _estimate_dairy(data: dict[str, Any]) -> None:
+    """Fill milk fat, MSNF and lactose for plain dairy (see module docstring)."""
+    fat = data.get("total_fat_pct")
+    water = data.get("water_pct")
+    if fat is not None:
+        data.setdefault("milk_fat_pct", fat)
+        if water is not None:
+            data.setdefault("msnf_pct", round(max(0.0, 100.0 - water - fat), 2))
+    sugar = data.get("total_sugar_pct")
+    if sugar and not any(data.get(k) for k in SUGAR_BREAKDOWN):
+        data["lactose_pct"] = sugar
+
+
 class USDAImporter(BaseImporter):
     source_name = "usda"
 
@@ -148,9 +204,20 @@ class USDAImporter(BaseImporter):
         name = raw.get("description", f"USDA {raw.get('fdcId', '?')}")
         data: dict[str, Any] = {"name": name}
 
+        amounts: dict[int, float] = {}
         for fn in raw.get("foodNutrients", []):
             nutrient_id = int(fn.get("nutrient", {}).get("id") or 0)
-            amount = float(fn.get("amount") or 0)
+            if nutrient_id and "amount" in fn:
+                amounts[nutrient_id] = float(fn.get("amount") or 0)
+        # Foundation Foods mostly report energy by Atwater factors and total
+        # sugars under another id; use those when the usual ones are missing.
+        for usual, alternatives in FALLBACK_NUTRIENT_IDS.items():
+            if usual not in amounts:
+                found = next((amounts[a] for a in alternatives if a in amounts), None)
+                if found is not None:
+                    amounts[usual] = found
+
+        for nutrient_id, amount in amounts.items():
             if nutrient_id in NUTRIENT_ID_MAP:
                 field = NUTRIENT_ID_MAP[nutrient_id]
                 if field == "sodium_mg":
@@ -161,8 +228,18 @@ class USDAImporter(BaseImporter):
                     amount = max(0.0, min(amount, 100.0))
                 data[field] = amount
 
+        if self._is_plain_dairy(raw):
+            _estimate_dairy(data)
         data["category_id"] = self._guess_category(raw)
         return IngredientCreate(**data)
+
+    @staticmethod
+    def _is_plain_dairy(food: dict[str, Any]) -> bool:
+        cat = str(food.get("foodCategory", {}).get("description") or "").lower()
+        name = str(food.get("description") or "").lower()
+        return cat == "dairy and egg products" and not any(
+            w in name for w in NOT_PLAIN_DAIRY
+        )
 
     def _guess_category(self, food: dict[str, Any]) -> int | None:
         # Foundation Foods: foodCategory.description

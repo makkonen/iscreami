@@ -246,3 +246,83 @@ def test_nzfcdb_import_all_skips_existing_and_persists_new(test_db, tmp_path):
 
     # F101 already exists → skipped, yields (name, None)
     assert results[1] == ("Whole milk", None)
+
+
+def _food(fdc_id: int, name: str, category: str, **nutrients: float) -> dict:
+    ids = {"water": 1051, "fat": 1004, "sugar": 2000, "lactose": 1013}
+    return {
+        "fdcId": fdc_id,
+        "description": name,
+        "foodCategory": {"description": category},
+        "foodNutrients": [
+            {"nutrient": {"id": ids[k]}, "amount": v} for k, v in nutrients.items()
+        ],
+    }
+
+
+def test_usda_reads_sr_legacy_and_estimates_plain_dairy(test_db, tmp_path):
+    json_file = tmp_path / "sr.json"
+    rows = [
+        _food(
+            1,
+            "Cream, fluid, heavy whipping",
+            "Dairy and Egg Products",
+            water=57.7,
+            fat=36.1,
+            sugar=2.9,
+        ),
+        _food(
+            2,
+            "Cheese, cheddar",
+            "Dairy and Egg Products",
+            water=37.0,
+            fat=33.0,
+            sugar=0.3,
+        ),
+        _food(
+            3,
+            "Milk, chocolate, fluid",
+            "Dairy and Egg Products",
+            water=82.0,
+            fat=2.0,
+            sugar=10.0,
+        ),
+        _food(
+            4,
+            "Milk, whole",
+            "Dairy and Egg Products",
+            water=88.1,
+            fat=3.3,
+            sugar=4.8,
+            lactose=4.6,
+        ),
+    ]
+    json_file.write_text(json.dumps({"SRLegacyFoods": rows}), encoding="utf-8")
+    importer = USDAImporter(test_db, json_file)
+    mapped = {f["description"]: importer.map(f) for f in importer._stream_foods()}
+
+    cream = mapped["Cream, fluid, heavy whipping"]
+    assert cream.milk_fat_pct == 36.1
+    assert cream.msnf_pct == pytest.approx(6.2)
+    assert cream.lactose_pct == 2.9  # total sugar taken as lactose
+    # Cheese and flavoured milk are left as USDA gives them.
+    assert mapped["Cheese, cheddar"].msnf_pct is None
+    assert mapped["Milk, chocolate, fluid"].lactose_pct is None
+    # A measured breakdown is kept, not overwritten.
+    assert mapped["Milk, whole"].lactose_pct == 4.6
+
+
+def test_usda_foundation_energy_and_sugar_fallbacks(test_db, tmp_path):
+    food = {
+        "fdcId": 5,
+        "description": "Blueberries, raw",
+        "foodCategory": {"description": "Fruits and Fruit Juices"},
+        "foodNutrients": [
+            {"nutrient": {"id": 2047}, "amount": 60.0},
+            {"nutrient": {"id": 2048}, "amount": 57.0},
+            {"nutrient": {"id": 1063}, "amount": 9.4},
+        ],
+    }
+    mapped = USDAImporter(test_db, _write_foundation_json(tmp_path, [food])).map(food)
+    assert mapped.energy_kj_per_100g == pytest.approx(57.0 * 4.184, abs=0.01)
+    assert mapped.total_sugar_pct == 9.4
