@@ -113,69 +113,6 @@ function FreezingChart({
   );
 }
 
-// ─── Scoopability banner ──────────────────────────────────────────────────────
-// serving_temperature_c = temp at which 75% of water is frozen.
-// Less negative (e.g. -6°C) = low PAC = hard/over-frozen at a standard cabinet.
-// More negative (e.g. -18°C) = high PAC = stays soft at a standard cabinet.
-
-interface ScoopabilityConfig {
-  bg: string;
-  dot: string;
-  text: string;
-  description: string;
-}
-
-function getScoopabilityConfig(servingTemp: number): ScoopabilityConfig {
-  if (servingTemp >= -8) {
-    return {
-      bg: "bg-blue-50 dark:bg-blue-900/20",
-      dot: "bg-blue-500",
-      text: "text-blue-800 dark:text-blue-300",
-      description: `Low anti-freeze power — will freeze very solid in a standard cabinet. Consider adding more sugar or sweeteners to keep it scoopable.`,
-    };
-  }
-  if (servingTemp >= -11) {
-    return {
-      bg: "bg-sky-50 dark:bg-sky-900/20",
-      dot: "bg-sky-400",
-      text: "text-sky-800 dark:text-sky-300",
-      description: "Leans firm — scoopable around −8 to −11°C, so serve it a little warmer than a typical −12°C cabinet, or keep it for a firmer style.",
-    };
-  }
-  if (servingTemp >= -14) {
-    return {
-      bg: "bg-green-50 dark:bg-green-900/20",
-      dot: "bg-green-500",
-      text: "text-green-800 dark:text-green-300",
-      description: "Good balance — scoopable texture in a typical −12°C dipping cabinet.",
-    };
-  }
-  if (servingTemp >= -17) {
-    return {
-      bg: "bg-amber-50 dark:bg-amber-900/20",
-      dot: "bg-amber-500",
-      text: "text-amber-800 dark:text-amber-300",
-      description: "High anti-freeze power — leans soft. Best served around −14 to −16°C, or intentional for a softer-style product.",
-    };
-  }
-  return {
-    bg: "bg-red-50 dark:bg-red-900/20",
-    dot: "bg-red-500",
-    text: "text-red-800 dark:text-red-300",
-    description: "Very high anti-freeze power — may stay too soft even at cold temperatures. Consider reducing sweeteners.",
-  };
-}
-
-function ScoopabilityBanner({ servingTemp }: { readonly servingTemp: number }) {
-  const cfg = getScoopabilityConfig(servingTemp);
-  return (
-    <div className={`flex items-start gap-2.5 rounded-lg px-3 py-2.5 ${cfg.bg}`}>
-      <span className={`w-2 h-2 rounded-full shrink-0 mt-0.5 ${cfg.dot}`} aria-hidden="true" />
-      <p className={`text-sm leading-snug ${cfg.text}`}>{cfg.description}</p>
-    </div>
-  );
-}
-
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function FreezingSection({ freezing, profile }: FreezingSectionProps) {
@@ -208,11 +145,6 @@ export function FreezingSection({ freezing, profile }: FreezingSectionProps) {
           <div className="text-xs text-base-content/40 mt-0.5">scooping benchmark</div>
         </div>
       </div>
-
-      {/* Scoopability interpretation */}
-      {freezing.serving_temperature_c != null && (
-        <ScoopabilityBanner servingTemp={freezing.serving_temperature_c} />
-      )}
 
       {/* Freezing curve chart */}
       {freezing.curve.length > 0 && (
