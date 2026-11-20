@@ -156,3 +156,49 @@ class TestSourceUrl:
         for bad in ("saveur.com", "javascript:alert(1)", "ftp://x"):
             with pytest.raises(ValueError):
                 RecipeUpdate(source_url=bad)
+
+
+class TestPaprikaExport:
+    def test_paprika_file(self, test_db):
+        import gzip
+        import json as _json
+
+        from api.routes.recipes import create_recipe, export_paprika
+        from api.schemas import RecipeCreate, RecipeIngredientInput
+        from tests.conftest import make_ingredient_orm
+
+        milk = make_ingredient_orm(
+            test_db, name="Milk", water_pct=88.0, protein_pct=3.3
+        )
+        nuts = make_ingredient_orm(test_db, name="Pecans")
+        recipe = create_recipe(
+            RecipeCreate(
+                name="Häagen test",
+                instructions="Chill.",
+                rating=4.5,
+                tags=["Reference/X"],
+                source_url="https://example.com/r",
+                ingredients=[
+                    RecipeIngredientInput(ingredient_id=milk.id, weight_grams=500),
+                    RecipeIngredientInput(
+                        ingredient_id=nuts.id, weight_grams=2.5, is_addin=True
+                    ),
+                ],
+            ),
+            test_db,
+        )
+        resp = export_paprika(recipe.id, test_db)
+        assert (
+            "filename*=UTF-8''H%C3%A4agen%20test.paprikarecipe"
+            in resp.headers["content-disposition"]
+        )
+        rec = _json.loads(gzip.decompress(resp.body))
+        assert (
+            rec["ingredients"]
+            == "500 g Milk\n\nAdd-ins (fold in after freezing):\n2.5 g Pecans"
+        )
+        assert rec["directions"] == "Chill."
+        assert rec["rating"] == 5  # Paprika rates in whole stars; halves round up
+        assert rec["categories"] == ["Ice Cream", "Reference/X"]
+        assert rec["source_url"] == "https://example.com/r"
+        assert rec["nutritional_info"].startswith("Per 100 g:")

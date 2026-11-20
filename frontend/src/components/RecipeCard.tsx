@@ -2,7 +2,7 @@ import { useState } from "react";
 import { DeleteRecipeMessage } from "./DeleteRecipeMessage";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Calendar, Download, Target, Trash2, Utensils, Weight } from "lucide-react";
+import { ArrowRight, Calendar, Download, FileText, Target, Trash2, Utensils, Weight } from "lucide-react";
 import { deleteRecipe, exportRecipe } from "../api";
 import { useToast } from "../hooks/useToast";
 import { useEscape } from "../hooks/useEscape";
@@ -108,6 +108,14 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
             </div>
           </div>
           <div className="flex items-center gap-1 self-end shrink-0 sm:self-auto">
+            <Link
+              to={`/recipes/${recipe.id}/view`}
+              className="btn btn-xs btn-ghost"
+              title="Recipe page: print, Paprika, or follow on your phone"
+              aria-label="Recipe page"
+            >
+              <FileText size={13} />
+            </Link>
             <button
               type="button"
               className="btn btn-xs btn-ghost"

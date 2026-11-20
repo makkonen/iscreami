@@ -5,8 +5,9 @@ from __future__ import annotations
 import json
 import uuid
 from typing import TYPE_CHECKING, Annotated, cast
+from urllib.parse import quote
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, Response, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -26,6 +27,7 @@ from api.services.export import (
     normalize_import_data,
     validate_import_data,
 )
+from api.services.paprika import paprika_file, paprika_filename
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -107,6 +109,28 @@ def export_single_recipe(recipe_id: uuid.UUID, db: DbSession):
     """Export a single recipe as a plain JSON object with underscore keys."""
     recipe = _load_recipe(db, recipe_id)
     return build_export_single(recipe)
+
+
+@router.get(
+    "/{recipe_id}/paprika",
+    response_class=Response,
+    responses={
+        **NOT_FOUND_RESPONSE,
+        200: {"content": {"application/octet-stream": {}}},
+    },
+)
+def export_paprika(recipe_id: uuid.UUID, db: DbSession):
+    """The recipe as a .paprikarecipe file, for importing into Paprika."""
+    recipe = _load_recipe(db, recipe_id)
+    name = paprika_filename(recipe)
+    return Response(
+        content=paprika_file(recipe),
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": 'attachment; filename="recipe.paprikarecipe"; '
+            f"filename*=UTF-8''{quote(name)}"
+        },
+    )
 
 
 @router.get("/{recipe_id}", response_model=RecipeOut, responses=NOT_FOUND_RESPONSE)

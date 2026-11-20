@@ -1,4 +1,4 @@
-import { Copy, GitBranch, RotateCcw, Save, Trash2 } from "lucide-react";
+import { Copy, FileText, GitBranch, RotateCcw, Save, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { TagEditor } from "./TagEditor";
 import { StarRating } from "./StarRating";
@@ -453,6 +453,12 @@ export function RecipeHeader({
                   Revert
                 </button>
               </Tooltip>
+            )}
+            {recipeName && recipeId && (
+              <Link to={`/recipes/${recipeId}/view`} className="btn btn-sm btn-ghost gap-1" title="A plain page to print, send to Paprika, or follow on your phone">
+                <FileText size={16} />
+                Recipe page
+              </Link>
             )}
             {recipeName && (
               <Tooltip content={TOOLTIPS.duplicateRecipe}>

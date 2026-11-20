@@ -95,6 +95,11 @@ export function fetchRecipes(): Promise<{ total: number; items: Recipe[] }> {
     return request("/recipes?limit=200");
 }
 
+/** Link to download a recipe as a .paprikarecipe file. */
+export function paprikaUrl(id: string): string {
+    return `${BASE}/recipes/${id}/paprika`;
+}
+
 export function fetchRecipe(id: string): Promise<Recipe> {
     return request(`/recipes/${id}`);
 }

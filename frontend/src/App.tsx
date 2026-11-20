@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, NavLink, Link } from "react-router-dom";
 import { CalculatorView } from "./components/CalculatorView";
 import { CompareView } from "./components/CompareView";
+import { RecipeView } from "./components/RecipeView";
 import { IngredientsView } from "./components/IngredientsView";
 import { RecipesView } from "./components/RecipesView";
 import { ProfilesView } from "./components/ProfilesView";
@@ -58,7 +59,7 @@ function Header({ theme, setTheme }: Readonly<{ theme: Theme; setTheme: (t: Them
   }, [menuOpen]);
 
   return (
-    <header className="bg-base-100 border-b border-base-200 px-4 py-3">
+    <header className="bg-base-100 border-b border-base-200 px-4 py-3 print:hidden">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link to="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity" onClick={closeMenu}>
@@ -168,7 +169,7 @@ const skipLinkStyle =
 function AppContent() {
   const { theme, setTheme } = useTheme();
   return (
-    <div className="min-h-screen bg-base-200 text-base-content">
+    <div className="min-h-screen bg-base-200 text-base-content print:bg-white">
       <a href="#main-content" className={skipLinkStyle}>
         Skip to main content
       </a>
@@ -182,6 +183,7 @@ function AppContent() {
           <Route path="/profiles" element={<ProfilesView />} />
           <Route path="/ingredients" element={<IngredientsView />} />
           <Route path="/compare" element={<CompareView />} />
+          <Route path="/recipes/:recipeId/view" element={<RecipeView />} />
           <Route
             path="*"
             element={<NotFoundPage />}
