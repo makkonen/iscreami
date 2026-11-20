@@ -30,7 +30,7 @@ export function withServing(
  * The textures are the frozen-% windows the presets use.
  */
 export const CUSTOM_TEXTURES = {
-  soft: { label: "Soft", detail: "as off a spin or churn", min: 50, max: 64 },
+  soft: { label: "Soft", detail: "as off a spin or churn", min: 53, max: 67 },
   scoop: { label: "Scoopable", detail: "scoopable", min: 70, max: 78 },
   firm: { label: "Firm", detail: "as a popsicle", min: 83, max: 90 },
 } as const;

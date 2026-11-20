@@ -8,7 +8,8 @@ derived from this for each recipe's own water and MSNF.
 Creami figures: a -18 C pint warms about 8-10 C on an ice cream or gelato
 spin and about 11 C on a lite spin, and each re-spin adds 3-4 C (Dream
 Scoops' measurements). Creami targets are calibrated on recipes that came out
-well straight off the spin, about 52-62% frozen.
+well straight off the spin, about 55-65% frozen (recalibrated after milk
+salts were counted once, by sodium, which reads protein recipes ~3 points firmer).
 """
 
 from __future__ import annotations
@@ -40,17 +41,17 @@ SERVING_METHODS: tuple[ServingMethod, ...] = (
         "Creami · ice cream / gelato spin (-9 °C)",
         "Eat right away",
         "A -18 °C pint warms to about -9 °C on an ice cream or gelato spin and is "
-        "eaten soft: 50-64% frozen.",
-        ServingTarget(-9.0, 50.0, 64.0),
+        "eaten soft: 53-67% frozen.",
+        ServingTarget(-9.0, 53.0, 67.0),
     ),
     ServingMethod(
         "creami_lite",
         "Creami · lite spin (-7 °C)",
         "Eat right away",
         "A -18 °C pint warms to about -7 °C on a lite spin and is eaten soft: "
-        "50-64% frozen. Suits lean, low-solids bases that would be rock-hard at "
+        "53-67% frozen. Suits lean, low-solids bases that would be rock-hard at "
         "-18 °C.",
-        ServingTarget(-7.0, 50.0, 64.0),
+        ServingTarget(-7.0, 53.0, 67.0),
     ),
     ServingMethod(
         "churn",
@@ -109,7 +110,7 @@ _LEGACY = {"eat_now": "creami_ice_cream", "scoop_later": "freezer"}
 # The textures are the frozen-% windows the presets use.
 CUSTOM_PREFIX = "custom:"
 CUSTOM_TEXTURES: dict[str, tuple[str, float, float]] = {
-    "soft": ("soft, as off a spin or churn", 50.0, 64.0),
+    "soft": ("soft, as off a spin or churn", 53.0, 67.0),
     "scoop": ("scoopable", 70.0, 78.0),
     "firm": ("firm, as a popsicle", 83.0, 90.0),
 }

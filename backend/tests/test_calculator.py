@@ -578,7 +578,7 @@ class TestServingResolution:
         frozen = next(
             c for c in result.target_comparison or [] if c.metric == "frozen_pct"
         )
-        assert (frozen.target_min, frozen.target_max) == (50.0, 64.0)
+        assert (frozen.target_min, frozen.target_max) == (53.0, 67.0)
 
     def test_chosen_serving_overrides_profile(self):
         profile = make_profile(default_serving_method="creami_lite")
