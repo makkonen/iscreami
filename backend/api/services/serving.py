@@ -37,7 +37,7 @@ class ServingMethod:
 SERVING_METHODS: tuple[ServingMethod, ...] = (
     ServingMethod(
         "creami_ice_cream",
-        "Creami · ice cream / gelato spin",
+        "Creami · ice cream / gelato spin (-9 °C)",
         "Eat right away",
         "A -18 °C pint warms to about -9 °C on an ice cream or gelato spin and is "
         "eaten soft: 50-64% frozen.",
@@ -45,7 +45,7 @@ SERVING_METHODS: tuple[ServingMethod, ...] = (
     ),
     ServingMethod(
         "creami_lite",
-        "Creami · lite spin",
+        "Creami · lite spin (-7 °C)",
         "Eat right away",
         "A -18 °C pint warms to about -7 °C on a lite spin and is eaten soft: "
         "50-64% frozen. Suits lean, low-solids bases that would be rock-hard at "
@@ -54,17 +54,18 @@ SERVING_METHODS: tuple[ServingMethod, ...] = (
     ),
     ServingMethod(
         "churn",
-        "Fresh from the churn",
+        "Fresh from the churn (-7 °C)",
         "Eat right away",
         "Straight out of a batch freezer at about -7 °C: 50-65% frozen.",
         ServingTarget(-7.0, 50.0, 65.0),
     ),
     ServingMethod(
         "soft_serve",
-        "Soft serve",
+        "Soft serve (-7 °C)",
         "Eat right away",
-        "Drawn at about -6 °C, much softer than scooped: 45-60% frozen.",
-        ServingTarget(-6.0, 45.0, 60.0),
+        "Drawn from a soft-serve machine at about -7 °C (makers specify "
+        "17-20 °F, -8 to -6.5 °C), much softer than scooped: 45-60% frozen.",
+        ServingTarget(-7.0, 45.0, 60.0),
     ),
     ServingMethod(
         "gelato_case",
