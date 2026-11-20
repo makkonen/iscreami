@@ -233,6 +233,8 @@ export interface Recipe {
     instructions?: string | null;
     /** Where the recipe came from (a web page). */
     source_url?: string | null;
+    /** In recipe lists: the best-fitting profile when none is chosen. */
+    suggested_profile_id?: string | null;
     /** The recipe this one was duplicated from. */
     parent_id?: string | null;
     /** "/" nests tags, e.g. "Status/Retired". */

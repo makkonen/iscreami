@@ -2,14 +2,17 @@ import { useNavigate } from "react-router-dom";
 import { ClearButton } from "./ClearButton";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Download, Upload } from "lucide-react";
-import { fetchRecipes, exportAllRecipes, importRecipes } from "../api";
+import { fetchProfiles, fetchRecipes, exportAllRecipes, importRecipes } from "../api";
 import { useState, useEffect } from "react";
 import { FileUploadModal } from "./FileUploadModal";
 import { useToast } from "../hooks/useToast";
 import { downloadJson } from "../lib/download";
 import { errorMessage } from "../lib/errors";
 import { RecipeCard } from "./RecipeCard";
+import type { Recipe } from "../types";
 import { childTags, hasTag, isRetired, RETIRED_TAG, tagCounts, tagLeaf, tagWithin } from "../lib/tags";
+
+const ALL_ICE_CREAM = "group:ice-cream";
 
 export function RecipesView() {
   const navigate = useNavigate();
@@ -33,6 +36,16 @@ export function RecipesView() {
   // The chosen tag, e.g. "Base" or "Base/Chocolate"; recipes at or under it show.
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const counts = tagCounts(recipes.map((r) => r.tags));
+  // Style: the chosen profile, or the best fit when none is chosen. "All ice
+  // cream" spans the ice cream tiers (regular and super-premium).
+  const { data: profiles } = useQuery({ queryKey: ["profiles"], queryFn: fetchProfiles });
+  const profileName = new Map((profiles ?? []).map((p) => [p.id, p.name]));
+  const [style, setStyle] = useState("");
+  const styleOf = (r: Recipe) => r.target_profile_id ?? r.suggested_profile_id ?? null;
+  const isIceCream = (id: string | null) => /ice cream$/i.test(profileName.get(id ?? "") ?? "");
+  const styleMatches = (r: Recipe) =>
+    !style || (style === ALL_ICE_CREAM ? isIceCream(styleOf(r)) : styleOf(r) === style);
+
   // Retired recipes stay out of the way unless that tag is picked.
   const showRetired = tagFilter != null && tagWithin(RETIRED_TAG, tagFilter);
   const retiredCount = recipes.filter((r) => isRetired(r.tags)).length;
@@ -41,13 +54,14 @@ export function RecipesView() {
   const shown = recipes.filter((r) => {
     if (!showRetired && isRetired(r.tags)) return false;
     if (tagFilter && !hasTag(r.tags, tagFilter)) return false;
+    if (!styleMatches(r)) return false;
     if (!words.length) return true;
     const text = [r.name, r.description ?? "", ...(r.tags ?? []), ...r.ingredients.map((i) => i.ingredient.name)]
       .join(" ")
       .toLowerCase();
     return words.every((w) => text.includes(w));
   });
-  const filtering = words.length > 0 || tagFilter != null;
+  const filtering = words.length > 0 || tagFilter != null || style !== "";
   // The list comes newest-first from the server.
   const [sort, setSort] = useState<"updated" | "rating" | "name">("updated");
   if (sort === "rating") shown.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
@@ -177,7 +191,7 @@ export function RecipesView() {
 
       {!isLoading && !isError && recipes.length > 0 && (
         <>
-          <div className="mb-4 flex items-center gap-3">
+          <div className="mb-4 flex flex-wrap items-center gap-2 sm:gap-3">
             <div className="relative w-full sm:max-w-sm">
               <input
                 type="text"
@@ -198,6 +212,20 @@ export function RecipesView() {
               <option value="updated">Recently updated</option>
               <option value="rating">Highest rated</option>
               <option value="name">Name</option>
+            </select>
+            <select
+              className="select select-sm w-auto shrink-0"
+              value={style}
+              onChange={(e) => setStyle(e.target.value)}
+              aria-label="Filter by style"
+            >
+              <option value="">All styles</option>
+              <option value={ALL_ICE_CREAM}>All ice cream</option>
+              {(profiles ?? []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
             </select>
             {filtering && (
               <span className="text-xs text-base-content/55 shrink-0">
@@ -256,7 +284,11 @@ export function RecipesView() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {shown.map((recipe) => (
-                <RecipeCard key={recipe.id} recipe={recipe} />
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  suggestedStyle={recipe.target_profile_id ? null : (profileName.get(recipe.suggested_profile_id ?? "") ?? null)}
+                />
               ))}
             </div>
           )}

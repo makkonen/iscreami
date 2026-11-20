@@ -14,9 +14,11 @@ import { SourceLink } from "./RecipeSource";
 
 interface RecipeCardProps {
   readonly recipe: Recipe;
+  /** The style the recipe fits best, when no profile is chosen for it. */
+  readonly suggestedStyle?: string | null;
 }
 
-export function RecipeCard({ recipe }: RecipeCardProps) {
+export function RecipeCard({ recipe, suggestedStyle = null }: RecipeCardProps) {
   const queryClient = useQueryClient();
   const { addToast } = useToast();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -91,10 +93,14 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
               <Weight size={13} />
               {recipe.total_weight_grams}g
             </div>
-            {recipe.target_profile && (
-              <div className="flex items-center gap-1 whitespace-nowrap">
+            {(recipe.target_profile || suggestedStyle) && (
+              <div className="flex items-center gap-1 whitespace-nowrap" title="Style (profile)">
                 <Target size={13} />
-                {recipe.target_profile.name}
+                {recipe.target_profile?.name ?? (
+                  <span>
+                    {suggestedStyle} <span className="italic">(auto)</span>
+                  </span>
+                )}
               </div>
             )}
             {recipe.rating != null && <StarRating value={recipe.rating} size={13} />}
