@@ -29,6 +29,10 @@ _INGREDIENT_LOAD_OPTIONS = (
 )
 
 
+# Sources imported in bulk from food databases.
+BULK_SOURCES = ("usda", "nzfcdb")
+
+
 @router.get("", response_model=PaginatedIngredients)
 def list_ingredients(
     db: DbSession,
@@ -54,7 +58,15 @@ def list_ingredients(
             (Ingredient.name.ilike(f"% {q}%"), 2),  # Word boundary
             else_=1,  # Substring match
         )
+        # Bulk imports (USDA, NZFCDB) run to thousands of entries; matches from
+        # your own and the built-in ingredients come first.
+        source_rank = case(
+            (Ingredient.source.in_(BULK_SOURCES), 2),
+            (Ingredient.source == "seed", 1),
+            else_=0,
+        )
         stmt = stmt.order_by(
+            source_rank,
             relevance_score.desc(),
             func.length(Ingredient.name).asc(),
             Ingredient.name,
