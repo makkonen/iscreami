@@ -43,6 +43,8 @@ if TYPE_CHECKING:
 
 KCAL_PER_KJ = 1 / 4.184
 VIOLATION_PENALTY = 1000.0
+# Advisory targets (stabilizer, emulsifier) cost this fraction as much.
+ADVISORY_PENALTY_FACTOR = 0.01
 # Aim this share of each target range inside its edges.
 TARGET_MARGIN = 0.05
 # How far the batch may grow or shrink unless it's kept fixed.
@@ -192,6 +194,9 @@ def _solve_once(
         if aim_hi is not None and min(values) >= aim_hi:
             aim_hi = None
         penalty = VIOLATION_PENALTY / _width(c)
+        if c.advisory:
+            # Nudged only when it's nearly free; never worth reshaping a recipe.
+            penalty *= ADVISORY_PENALTY_FACTOR
         if aim_lo is not None:
             coef, fixed = offsets(value, aim_lo)
             r = row()
@@ -343,6 +348,8 @@ def balance(
     unmet = [
         c
         for c in result.target_comparison or []
-        if c.status != "in_range" and c.metric not in ("serving_temp", "frozen_pct")
+        if c.status != "in_range"
+        and not c.advisory
+        and c.metric not in ("serving_temp", "frozen_pct")
     ]
     return BalanceResult(weights=weights, result=result, unmet=unmet)

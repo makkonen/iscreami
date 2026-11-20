@@ -439,6 +439,9 @@ class MetricComparison(BaseModel):
     target_min: float | None
     target_max: float | None
     status: MetricStatus
+    # Advisory metrics (stabilizer, emulsifier) are shown but don't count as
+    # issues: being outside their usual range isn't enough to raise a fuss.
+    advisory: bool = False
 
 
 class CalculateResponse(BaseModel):

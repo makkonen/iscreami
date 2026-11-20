@@ -397,6 +397,7 @@ def compare_to_target(
                 target_min=tmin,
                 target_max=tmax,
                 status=status,
+                advisory=metric in ADVISORY_METRICS,
             )
         )
     return results
@@ -416,6 +417,11 @@ def _off_target(value: float, tmin: float | None, tmax: float | None) -> float:
     over = (tmin - value) if tmin is not None else (value - limit)
     return max(0.0, 1.0 + over / scale)
 
+
+# Process choices rather than what defines a style, and often fine outside
+# their usual range (a custard's yolk far exceeds any emulsifier "limit").
+# They're reported, but never counted as issues.
+ADVISORY_METRICS = frozenset({"stabilizer", "emulsifier"})
 
 # How much each metric counts toward picking a profile (others count 1).
 FIT_WEIGHTS = {"pac": 0.5, "stabilizer": 0.25, "emulsifier": 0.25}

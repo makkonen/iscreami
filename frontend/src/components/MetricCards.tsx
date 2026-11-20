@@ -83,12 +83,14 @@ interface GaugeBarProps {
   readonly targetMin: number | null;
   readonly targetMax: number | null;
   readonly hue: number;
+  /** Grey marker: an advisory metric outside its range. */
+  readonly muted?: boolean;
   readonly label: string;
   /** When set, the marker can be dragged (pointer or arrow keys). */
   readonly onDrag?: { start: () => void; move: (value: number) => void; end: () => void };
 }
 
-function GaugeBar({ value, targetMin, targetMax, hue, label, onDrag }: GaugeBarProps) {
+function GaugeBar({ value, targetMin, targetMax, hue, muted = false, label, onDrag }: GaugeBarProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   // While dragging, the scale is frozen and the marker follows the pointer, so
   // the track doesn't rescale under the cursor as the recipe catches up.
@@ -179,7 +181,7 @@ function GaugeBar({ value, targetMin, targetMax, hue, label, onDrag }: GaugeBarP
         }`}
         style={{
           left: `${Math.max(2, Math.min(98, valuePos))}%`,
-          backgroundColor: `hsl(${hue} 75% 48%)`,
+          backgroundColor: muted ? "hsl(0 0% 55%)" : `hsl(${hue} 75% 48%)`,
         }}
       />
     </div>
@@ -243,7 +245,11 @@ export function MetricCards({ comparisons, freezeMetric, onDragMetric }: MetricC
         const untargeted = c.target_min == null && c.target_max == null;
         const range = untargeted ? "no target" : rangeText(c, unit);
         const hue = hueFor(offTarget(c.value, c.target_min, c.target_max));
-        const tooltip = METRIC_TOOLTIPS[c.metric] ?? label;
+        // An advisory metric outside its range is a quiet note, not a warning.
+        const quiet = !!c.advisory && c.status !== "in_range";
+        const tooltip =
+          (METRIC_TOOLTIPS[c.metric] ?? label) +
+          (c.advisory ? "\n\nAdvisory: outside this range is worth a look, but isn't counted as an issue." : "");
 
         return (
           // On phones each metric is its own small grid: label, value and range on
@@ -262,6 +268,7 @@ export function MetricCards({ comparisons, freezeMetric, onDragMetric }: MetricC
               targetMin={c.target_min}
               targetMax={c.target_max}
               hue={hue}
+              muted={quiet}
               label={label}
               onDrag={
                 onDragMetric && !inF && onDragMetric.isDraggable(c.metric)
@@ -276,8 +283,8 @@ export function MetricCards({ comparisons, freezeMetric, onDragMetric }: MetricC
             </div>
             <span
               className={`text-sm font-bold tabular-nums text-right transition-colors duration-150 ${
-                untargeted
-                  ? "text-base-content/70"
+                untargeted || quiet
+                  ? "text-base-content/60"
                   : "text-[hsl(var(--hue)_70%_35%)] dark:text-[hsl(var(--hue)_80%_65%)]"
               }`}
               style={{ "--hue": hue } as CSSProperties}

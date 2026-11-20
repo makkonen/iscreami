@@ -64,6 +64,13 @@ CATEGORIES = [
 # sherbets, with little protein or fat for body, take a little more; protein-
 # rich mixes less.
 #
+# Emulsifier ranges are maximums only: none is fine, especially in a Creami,
+# which doesn't whip in much air. Added emulsifiers run 0.1-0.3% of the mix in
+# total (mono- and diglycerides 0.1-0.2%, polysorbate 80 just 0.02-0.04%).
+# Egg yolk counts at its lecithin share, but is a weaker emulsifier and a
+# custard's yolk can far exceed these without harm; like stabilizer, the
+# emulsifier target is advisory and never counted as an issue.
+#
 # Sugar ranges are deliberately left unset: freezing is judged by PAC and
 # sweetness by POD, which also covers non-sugar sweeteners. MSNF is uncapped
 # for high-protein styles: the cap guards against lactose crystallising, and
@@ -86,8 +93,7 @@ TARGET_PROFILES = [
         msnf_max=12.0,
         stabilizer_min=0.1,
         stabilizer_max=0.3,
-        emulsifier_min=0.0,
-        emulsifier_max=0.4,
+        emulsifier_max=0.3,
     ),
     _profile(
         "Gelato",
@@ -102,7 +108,6 @@ TARGET_PROFILES = [
         msnf_max=12.0,
         stabilizer_min=0.1,
         stabilizer_max=0.3,
-        emulsifier_min=0.0,
         emulsifier_max=0.3,
     ),
     _profile(
@@ -121,8 +126,7 @@ TARGET_PROFILES = [
         msnf_max=14.0,
         stabilizer_min=0.1,
         stabilizer_max=0.35,
-        emulsifier_min=0.0,
-        emulsifier_max=0.4,
+        emulsifier_max=0.3,
     ),
     _profile(
         "High-protein",
@@ -138,8 +142,7 @@ TARGET_PROFILES = [
         protein_max=18.0,
         stabilizer_min=0.05,
         stabilizer_max=0.3,
-        emulsifier_min=0.0,
-        emulsifier_max=0.4,
+        emulsifier_max=0.3,
     ),
     _profile(
         "Sherbet",
@@ -157,7 +160,6 @@ TARGET_PROFILES = [
         msnf_max=3.5,
         stabilizer_min=0.15,
         stabilizer_max=0.4,
-        emulsifier_min=0.0,
         emulsifier_max=0.2,
     ),
     _profile(
@@ -177,8 +179,7 @@ TARGET_PROFILES = [
         msnf_max=0.0,
         stabilizer_min=0.15,
         stabilizer_max=0.45,
-        emulsifier_min=0.0,
-        emulsifier_max=0.2,
+        emulsifier_max=0.1,
     ),
 ]
 

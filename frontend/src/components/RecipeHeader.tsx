@@ -21,7 +21,7 @@ interface StatusPill {
 function getBalancePill(result: CalculateResponse | null): StatusPill {
   // PAC, % frozen and serving temperature are the same judgement; count it once.
   const comparisons = result?.target_comparison?.filter(
-    (c) => c.metric !== "serving_temp" && c.metric !== "frozen_pct" && isTargeted(c),
+    (c) => c.metric !== "serving_temp" && c.metric !== "frozen_pct" && !c.advisory && isTargeted(c),
   );
   if (!comparisons || comparisons.length === 0) {
     return {

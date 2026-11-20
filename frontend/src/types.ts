@@ -351,6 +351,8 @@ export interface MetricComparison {
     target_min: number | null;
     target_max: number | null;
     status: MetricStatus;
+    /** Shown but never counted as an issue (stabilizer, emulsifier). */
+    advisory?: boolean;
 }
 
 export interface CalculateResponse {

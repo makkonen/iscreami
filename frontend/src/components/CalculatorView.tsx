@@ -7,7 +7,7 @@ import { BalanceModal } from "./BalanceModal";
 import { BatchLog } from "./BatchLog";
 import { RecipeText } from "./RecipeText";
 import { keyFor, type RecipeRow } from "../hooks/useRecipeCalculator";
-import type { BatchSnapshot, Ingredient, TargetProfile } from "../types";
+import type { BatchSnapshot, Ingredient, MetricComparison, TargetProfile } from "../types";
 import { fetchIngredient, fetchProfiles, fetchRecipe, fetchRecipes, fetchServingMethods } from "../api";
 import { useToast } from "../hooks/useToast";
 import { useRecipeCalculator } from "../hooks/useRecipeCalculator";
@@ -25,6 +25,9 @@ import { RecipeHeader } from "./RecipeHeader";
 import { InfoIcon } from "./InfoIcon";
 import { useEscape } from "../hooks/useEscape";
 import { TOOLTIPS } from "../lib/tooltips";
+
+// Advisory metrics (stabilizer, emulsifier) don't count toward "in range".
+const counted = (c: MetricComparison) => isTargeted(c) && !c.advisory;
 
 export function CalculatorView() {
   const { recipeId } = useParams();
@@ -423,8 +426,8 @@ export function CalculatorView() {
                       <div className="flex items-center gap-3 ml-auto">
                         <span className="text-xs tabular-nums text-base-content/60 whitespace-nowrap">
                           {loading && <span className="loading loading-dots loading-xs mr-2 align-middle" />}
-                          {shownComparisons.filter((c) => isTargeted(c) && c.status === "in_range").length}/
-                          {shownComparisons.filter(isTargeted).length} in range
+                          {shownComparisons.filter((c) => counted(c) && c.status === "in_range").length}/
+                          {shownComparisons.filter(counted).length} in range
                         </span>
                         <div className="join" role="group" aria-label="Show freezing as">
                           {(Object.keys(FREEZE_METRIC_LABELS) as FreezeMetric[]).map((m) => (

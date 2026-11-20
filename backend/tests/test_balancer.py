@@ -239,4 +239,9 @@ def test_unreachable_targets_do_not_distort_the_answer():
     result = balance(start, brief)
     assert result.weights[0] == pytest.approx(300.0, abs=0.01)
     assert result.weights[1] == pytest.approx(600.0, abs=0.01)
-    assert {c.metric for c in result.unmet} == {"emulsifier"}
+    # Emulsifier is advisory: still missed, but not reported as unmet.
+    assert result.unmet == []
+    emulsifier = next(
+        c for c in result.result.target_comparison if c.metric == "emulsifier"
+    )
+    assert emulsifier.advisory and emulsifier.status == "below"
