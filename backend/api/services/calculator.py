@@ -524,7 +524,8 @@ def calculate(
             pac,
             resolve_serving(serving_method_id, target_profile),
         )
-    elif candidate_profiles:
+    # A recipe of add-ins only has no mix to fit a style to.
+    elif candidate_profiles and composition.total_weight_g > 0:
         suggestion = suggest_profile(
             composition,
             sweetness,

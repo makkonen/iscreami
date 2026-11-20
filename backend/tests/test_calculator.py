@@ -670,3 +670,9 @@ class TestDairyMinimums:
         )
         assert by_metric["milk_fat"].status == MetricStatus.below
         assert by_metric["msnf"].status == MetricStatus.below
+
+
+def test_no_profile_suggested_without_a_mix():
+    """A recipe of add-ins only has nothing to fit a style to."""
+    result = calculate([], candidate_profiles=[make_profile(name="Sorbet")])  # type: ignore[list-item]
+    assert result.suggested_profile_id is None
