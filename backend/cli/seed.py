@@ -10,7 +10,7 @@ import typer
 from sqlalchemy import select
 
 from api.db import SessionLocal
-from api.models import Ingredient, IngredientCategory, TargetProfile
+from api.models import Ingredient, IngredientAlias, IngredientCategory, TargetProfile
 
 app = typer.Typer()
 
@@ -260,6 +260,9 @@ def _seed_ingredients(db) -> None:
         data["source_id"] = source_id
         # Generate deterministic UUID based on source + source_id pattern
         data["id"] = uuid.uuid5(_INGREDIENT_NAMESPACE, f"seed:{source_id}")
+        aliases = data.pop("aliases", [])
 
-        db.add(Ingredient(**data))
+        ingredient = Ingredient(**data)
+        ingredient.aliases = [IngredientAlias(alias=a) for a in aliases]
+        db.add(ingredient)
         typer.echo(f"  + ingredient: {data['name']}")

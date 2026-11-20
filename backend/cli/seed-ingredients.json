@@ -137,6 +137,27 @@
     "pod_override": 10.0
   },
   {
+    "name": "Oligofructose (FOS)",
+    "category_slug": "sweetener",
+    "description": "Short-chain inulin (degree of polymerisation 2-8), e.g. Orafti P95: about 95% oligofructose, 5% free sugars. Depresses the freezing point about half as much as sucrose (dairyscience.info) and is about a third as sweet.",
+    "water_pct": 0.0,
+    "total_fat_pct": 0.0,
+    "protein_pct": 0.0,
+    "carbohydrate_pct": 100.0,
+    "fiber_pct": 93.0,
+    "total_sugar_pct": 5.0,
+    "sodium_mg": 0.0,
+    "energy_kj_per_100g": 837.0,
+    "pac_override": 50.0,
+    "pod_override": 35.0,
+    "usage_max_pct": 8.0,
+    "aliases": [
+      "FOS",
+      "oligofructose",
+      "fructooligosaccharides"
+    ]
+  },
+  {
     "name": "Glucose Powder",
     "category_slug": "sweetener",
     "water_pct": 5.0,
@@ -280,7 +301,7 @@
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
     "energy_kj_per_100g": 418.0,
-    "pac_override": 100.0,
+    "pac_override": 60.0,
     "pod_override": 10.0
   },
   {
@@ -355,19 +376,24 @@
     "sodium_mg": 0.0,
     "energy_kj_per_100g": 335.0,
     "pac_override": 19.0,
-    "pod_override": 10.0
+    "pod_override": 10.0,
+    "aliases": [
+      "soluble corn fiber",
+      "resistant maltodextrin"
+    ]
   },
   {
     "name": "Corn Starch",
     "category_slug": "stabilizer",
-    "water_pct": 0.0,
+    "water_pct": 8.3,
     "total_fat_pct": 0.0,
     "protein_pct": 0.0,
-    "carbohydrate_pct": 100.0,
+    "carbohydrate_pct": 91.3,
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
-    "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "stabilizer_pct": 20.0,
+    "energy_kj_per_100g": 1594.1,
+    "description": "Counted as 20% stabilizer: starch thickens at roughly a fifth of a gum's strength, so 1% starch reads like 0.2% gums against the stabilizer targets."
   },
   {
     "name": "Cremodan",
@@ -536,14 +562,15 @@
   {
     "name": "Tapioca Starch",
     "category_slug": "stabilizer",
-    "water_pct": 0.0,
+    "water_pct": 11.0,
     "total_fat_pct": 0.0,
     "protein_pct": 0.0,
-    "carbohydrate_pct": 100.0,
+    "carbohydrate_pct": 88.7,
     "total_sugar_pct": 0.0,
     "sodium_mg": 0.0,
-    "stabilizer_pct": 100.0,
-    "energy_kj_per_100g": 0.0
+    "stabilizer_pct": 20.0,
+    "energy_kj_per_100g": 1497.9,
+    "description": "Counted as 20% stabilizer: starch thickens at roughly a fifth of a gum's strength, so 1% starch reads like 0.2% gums against the stabilizer targets."
   },
   {
     "name": "Tara Gum",
