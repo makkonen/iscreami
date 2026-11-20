@@ -139,7 +139,7 @@ function getScoopabilityConfig(servingTemp: number): ScoopabilityConfig {
       bg: "bg-sky-50 dark:bg-sky-900/20",
       dot: "bg-sky-400",
       text: "text-sky-800 dark:text-sky-300",
-      description: "Leans firm — a good choice for harder styles or a colder serving environment.",
+      description: "Leans firm — scoopable around −8 to −11°C, so serve it a little warmer than a typical −12°C cabinet, or keep it for a firmer style.",
     };
   }
   if (servingTemp >= -14) {
