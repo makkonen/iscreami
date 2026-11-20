@@ -231,6 +231,8 @@ export interface Recipe {
     target_profile: TargetProfile | null;
     /** How to make it, when it needs more than mixing and freezing. */
     instructions?: string | null;
+    /** Where the recipe came from (a web page). */
+    source_url?: string | null;
     /** The recipe this one was duplicated from. */
     parent_id?: string | null;
     /** "/" nests tags, e.g. "Status/Retired". */

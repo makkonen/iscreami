@@ -38,7 +38,9 @@ interface RecipeIngredientInput {
 
 // Rows are persisted in display order; sort_order mirrors the array index.
 /** Recipe fields that save on their own, outside the mix's unsaved edits. */
-export type RecipeDetails = Partial<Pick<Recipe, "name" | "description" | "instructions" | "tags" | "rating">>;
+export type RecipeDetails = Partial<
+    Pick<Recipe, "name" | "description" | "instructions" | "source_url" | "tags" | "rating">
+>;
 
 /** The parts of the editor that undo and redo step through. */
 interface EditorState {
@@ -436,6 +438,7 @@ export function useRecipeCalculator() {
                     name,
                     description: duplicate ? (currentRecipe?.description ?? null) : null,
                     instructions: duplicate ? (currentRecipe?.instructions ?? null) : null,
+                    source_url: duplicate ? (currentRecipe?.source_url ?? null) : null,
                     parent_id: duplicate ? (currentRecipe?.id ?? null) : null,
                     // A variant starts its own testing, so status tags stay behind.
                     tags: duplicate

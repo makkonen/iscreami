@@ -321,6 +321,8 @@ export function CalculatorView() {
             onRename={(name) => updateDetails({ name })}
             rating={currentRecipe?.rating ?? null}
             onRate={(rating) => void updateDetails({ rating })}
+            sourceUrl={currentRecipe?.source_url ?? null}
+            onChangeSource={(source_url) => updateDetails({ source_url })}
             onChangeProfile={changeProfile}
           />
         </div>

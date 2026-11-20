@@ -68,6 +68,7 @@ def build_export_single(
             "name": recipe.name,
             "description": recipe.description,
             "instructions": recipe.instructions,
+            "source_url": recipe.source_url,
             "recipe_type": recipe.recipe_type,
             "serving_method": recipe.serving_method,
             "tags": recipe.tags or [],
@@ -290,6 +291,7 @@ def create_recipes_from_import(
             name=recipe_data["name"],
             description=recipe_data.get("description"),
             instructions=recipe_data.get("instructions"),
+            source_url=recipe_data.get("source_url"),
             recipe_type=recipe_data.get("recipe_type"),
             serving_method=recipe_data.get("serving_method"),
             tags=normalize_tags(

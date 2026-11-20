@@ -2,6 +2,7 @@ import { Copy, GitBranch, RotateCcw, Save, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { TagEditor } from "./TagEditor";
 import { StarRating } from "./StarRating";
+import { RecipeSource } from "./RecipeSource";
 import { RecipeName } from "./RecipeName";
 import type { CalculateResponse, Recipe, ServingMethod, TargetProfile } from "../types";
 import { Tooltip } from "./Tooltip";
@@ -212,6 +213,8 @@ interface RecipeHeaderProps {
   readonly onRename?: (name: string) => Promise<boolean>;
   readonly rating?: number | null;
   readonly onRate?: (rating: number | null) => void;
+  readonly sourceUrl?: string | null;
+  readonly onChangeSource?: (url: string | null) => Promise<boolean>;
 }
 
 export function RecipeHeader({
@@ -240,6 +243,8 @@ export function RecipeHeader({
   onRename,
   rating = null,
   onRate,
+  sourceUrl = null,
+  onChangeSource,
 }: RecipeHeaderProps) {
   const effectiveProfile = targetProfile ?? suggestedProfile;
   const custom = parseCustomServing(servingMethod);
@@ -268,6 +273,11 @@ export function RecipeHeader({
                 <span className="text-base-content/40 italic">Unsaved recipe</span>
               )}
             </h1>
+            {recipeName && onChangeSource && (
+              <p className="mb-1 text-sm text-base-content/60">
+                <RecipeSource url={sourceUrl} onSave={onChangeSource} />
+              </p>
+            )}
             {(parentRecipe || variants.length > 0) && (
               <p className="mb-1 flex flex-wrap items-center gap-x-1.5 text-sm text-base-content/60">
                 <GitBranch size={14} className="shrink-0" aria-hidden="true" />

@@ -133,3 +133,26 @@ class TestRatings:
         with pytest.raises(ValueError):
             BatchUpdate(overall=4.25)
         assert BatchUpdate(overall=4.5).overall == 4.5
+
+
+class TestSourceUrl:
+    """A recipe can link to where it came from."""
+
+    def test_saves_and_clears(self, test_db):
+        from api.routes.recipes import create_recipe, update_recipe
+        from api.schemas import RecipeCreate, RecipeUpdate
+
+        recipe = create_recipe(
+            RecipeCreate(name="Jeni's", source_url=" https://www.saveur.com/x "),
+            test_db,
+        )
+        assert recipe.source_url == "https://www.saveur.com/x"
+        cleared = update_recipe(recipe.id, RecipeUpdate(source_url=""), test_db)
+        assert cleared.source_url is None
+
+    def test_rejects_non_links(self):
+        from api.schemas import RecipeUpdate
+
+        for bad in ("saveur.com", "javascript:alert(1)", "ftp://x"):
+            with pytest.raises(ValueError):
+                RecipeUpdate(source_url=bad)

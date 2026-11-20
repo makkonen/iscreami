@@ -10,6 +10,7 @@ import { downloadJson } from "../lib/download";
 import { errorMessage } from "../lib/errors";
 import type { Recipe } from "../types";
 import { StarRating } from "./StarRating";
+import { SourceLink } from "./RecipeSource";
 
 interface RecipeCardProps {
   readonly recipe: Recipe;
@@ -97,6 +98,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
               </div>
             )}
             {recipe.rating != null && <StarRating value={recipe.rating} size={13} />}
+            {recipe.source_url && <SourceLink url={recipe.source_url} />}
             <div className="flex items-center gap-1 whitespace-nowrap">
               <Calendar size={13} />
               {new Date(recipe.updated_at).toLocaleDateString(undefined, {

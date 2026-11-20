@@ -103,6 +103,7 @@ export function createRecipe(data: {
     name: string;
     description?: string | null;
     instructions?: string | null;
+    source_url?: string | null;
     parent_id?: string | null;
     tags?: string[];
     target_profile_id?: string | null;
@@ -118,6 +119,7 @@ export function updateRecipe(
         name?: string;
         description?: string | null;
         instructions?: string | null;
+        source_url?: string | null;
         tags?: string[];
         rating?: number | null;
         target_profile_id?: string | null;

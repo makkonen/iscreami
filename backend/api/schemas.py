@@ -209,6 +209,21 @@ Stars = Annotated[float | None, AfterValidator(check_stars)]
 MAX_RECIPE_TEXT = 20000  # notes and instructions
 
 
+def check_source_url(value: str | None) -> str | None:
+    """A web link (http or https), or none; blank clears it."""
+    if value is None or not value.strip():
+        return None
+    value = value.strip()
+    if not value.lower().startswith(("http://", "https://")):
+        raise ValueError("source must be a web link starting with http:// or https://")
+    return value
+
+
+SourceUrl = Annotated[
+    str | None, Field(default=None, max_length=2000), AfterValidator(check_source_url)
+]
+
+
 def normalize_tags(tags: list[str] | None) -> list[str] | None:
     """Tidy tags: trim each "/" level, drop empty levels and duplicates, sort."""
     if tags is None:
@@ -246,6 +261,7 @@ class RecipeCreate(BaseModel):
     name: str = Field(max_length=255)
     description: str | None = Field(default=None, max_length=MAX_RECIPE_TEXT)
     instructions: str | None = Field(default=None, max_length=MAX_RECIPE_TEXT)
+    source_url: SourceUrl = None
     recipe_type: str | None = Field(default=None, max_length=100)
     serving_method: str | None = Field(default=None, max_length=50)
     target_profile_id: uuid.UUID | None = None
@@ -263,6 +279,7 @@ class RecipeUpdate(BaseModel):
     name: str | None = Field(default=None, max_length=255)  # type: ignore[assignment]
     description: str | None = Field(default=None, max_length=MAX_RECIPE_TEXT)
     instructions: str | None = Field(default=None, max_length=MAX_RECIPE_TEXT)
+    source_url: SourceUrl = None
     recipe_type: str | None = Field(default=None, max_length=100)
     serving_method: str | None = Field(default=None, max_length=50)
     target_profile_id: uuid.UUID | None = None
@@ -281,6 +298,7 @@ class RecipeOut(BaseModel):
     name: str
     description: str | None = None
     instructions: str | None = None
+    source_url: str | None = None
     recipe_type: str | None = None
     serving_method: str | None = None
     target_profile_id: uuid.UUID | None = None
@@ -492,6 +510,7 @@ class RecipeExportOut(BaseModel):
     name: str
     description: str | None = None
     instructions: str | None = None
+    source_url: str | None = None
     recipe_type: str | None = None
     serving_method: str | None = None
     tags: list[str] = []

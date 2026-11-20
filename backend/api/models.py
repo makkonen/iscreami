@@ -204,6 +204,8 @@ class Recipe(Base):
     description: Mapped[str | None] = mapped_column(Text)
     # How to make it, for recipes that need more than mixing and freezing.
     instructions: Mapped[str | None] = mapped_column(Text)
+    # Where the recipe came from (a web page), if anywhere.
+    source_url: Mapped[str | None] = mapped_column(Text)
     recipe_type: Mapped[str | None] = mapped_column(Text)
     # How it will be served (e.g. eat right away, scoop later); sets the freezing target.
     serving_method: Mapped[str | None] = mapped_column(Text)
