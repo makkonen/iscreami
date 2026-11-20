@@ -56,6 +56,14 @@ CATEGORIES = [
 # 5.9% protein); and mharlass/icecream-calculator's note that a shaved frozen
 # puck tolerates lower fat and higher solids than churning.
 #
+# Stabilizer ranges are for the hydrocolloids themselves (LBG, guar,
+# carrageenan, xanthan), as the stabilizer metric counts them. The 0.2-0.5%
+# often quoted is for commercial stabilizer/emulsifier blends, which include
+# emulsifier and usually a sugar carrier. Pure gums run lower: locust bean gum
+# about 0.1-0.2% of the mix, carrageenan 0.01-0.05% alongside it. Sorbets and
+# sherbets, with little protein or fat for body, take a little more; protein-
+# rich mixes less.
+#
 # Sugar ranges are deliberately left unset: freezing is judged by PAC and
 # sweetness by POD, which also covers non-sugar sweeteners. MSNF is uncapped
 # for high-protein styles: the cap guards against lactose crystallising, and
@@ -77,7 +85,7 @@ TARGET_PROFILES = [
         milk_fat_max=18.0,
         msnf_max=12.0,
         stabilizer_min=0.1,
-        stabilizer_max=0.5,
+        stabilizer_max=0.3,
         emulsifier_min=0.0,
         emulsifier_max=0.4,
     ),
@@ -92,8 +100,8 @@ TARGET_PROFILES = [
         total_fat_max=10.0,
         milk_fat_max=10.0,
         msnf_max=12.0,
-        stabilizer_min=0.2,
-        stabilizer_max=0.5,
+        stabilizer_min=0.1,
+        stabilizer_max=0.3,
         emulsifier_min=0.0,
         emulsifier_max=0.3,
     ),
@@ -112,7 +120,7 @@ TARGET_PROFILES = [
         msnf_min=6.0,
         msnf_max=14.0,
         stabilizer_min=0.1,
-        stabilizer_max=0.7,
+        stabilizer_max=0.35,
         emulsifier_min=0.0,
         emulsifier_max=0.4,
     ),
@@ -128,8 +136,8 @@ TARGET_PROFILES = [
         milk_fat_max=5.0,
         protein_min=8.0,
         protein_max=18.0,
-        stabilizer_min=0.1,
-        stabilizer_max=0.6,
+        stabilizer_min=0.05,
+        stabilizer_max=0.3,
         emulsifier_min=0.0,
         emulsifier_max=0.4,
     ),
@@ -147,8 +155,8 @@ TARGET_PROFILES = [
         # With 1-2% milk fat, this keeps total milk solids near 2-5%.
         msnf_min=1.0,
         msnf_max=3.5,
-        stabilizer_min=0.2,
-        stabilizer_max=0.5,
+        stabilizer_min=0.15,
+        stabilizer_max=0.4,
         emulsifier_min=0.0,
         emulsifier_max=0.2,
     ),
@@ -167,8 +175,8 @@ TARGET_PROFILES = [
         # No dairy at all.
         milk_fat_max=0.0,
         msnf_max=0.0,
-        stabilizer_min=0.2,
-        stabilizer_max=0.6,
+        stabilizer_min=0.15,
+        stabilizer_max=0.45,
         emulsifier_min=0.0,
         emulsifier_max=0.2,
     ),
