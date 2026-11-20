@@ -4,7 +4,7 @@ import { ArrowRight, Milk, X } from "lucide-react";
 import { fetchIngredients } from "../api";
 import { rowKey, type RecipeRow } from "../hooks/useRecipeCalculator";
 import { useEscape } from "../hooks/useEscape";
-import { type DairyPart, isFluidDairy, planDairySwap, roundGrams, totalOf } from "../lib/dairySwap";
+import { type DairyPart, isSwappableDairy, planDairySwap, roundGrams, totalOf } from "../lib/dairySwap";
 import type { Ingredient } from "../types";
 
 const ON_HAND_KEY = "dairyOnHand";
@@ -25,15 +25,24 @@ function saveOnHand(ids: Set<string>) {
   }
 }
 
-/** Your own and the built-in fluid dairy, lightest first. Bulk imports are left out. */
-async function fetchDairy(): Promise<Ingredient[]> {
-  const lists = await Promise.all(
-    ["icc4", "manual", "seed"].map((source) => fetchIngredients({ source, limit: 200 }).then((p) => p.items)),
-  );
-  return lists
-    .flat()
-    .filter(isFluidDairy)
-    .sort((a, b) => (a.total_fat_pct ?? 0) - (b.total_fat_pct ?? 0) || a.name.localeCompare(b.name));
+/**
+ * Your own and the built-in milks, creams and milk powders (liquids first,
+ * each lightest first), plus plain water. Bulk imports are left out.
+ */
+async function fetchDairy(): Promise<{ dairy: Ingredient[]; water?: Ingredient }> {
+  const all = (
+    await Promise.all(
+      ["icc4", "manual", "seed"].map((source) => fetchIngredients({ source, limit: 200 }).then((p) => p.items)),
+    )
+  ).flat();
+  const powder = (i: Ingredient) => ((i.water_pct ?? 0) < 50 ? 1 : 0);
+  const dairy = all
+    .filter(isSwappableDairy)
+    .sort(
+      (a, b) =>
+        powder(a) - powder(b) || (a.total_fat_pct ?? 0) - (b.total_fat_pct ?? 0) || a.name.localeCompare(b.name),
+    );
+  return { dairy, water: all.find((i) => i.name.trim().toLowerCase() === "water") };
 }
 
 interface DairySwapModalProps {
@@ -47,8 +56,9 @@ const fmt = (g: number) => (g < 10 ? g.toFixed(1) : g.toFixed(0));
 
 export function DairySwapModal({ rows, onApply, onClose }: DairySwapModalProps) {
   useEscape(onClose, true);
-  const { data: dairy } = useQuery({ queryKey: ["dairy-on-hand-options"], queryFn: fetchDairy });
-  const swappable = rows.filter((r) => !r.is_addin && r.weight_grams > 0 && isFluidDairy(r.ingredient));
+  const { data } = useQuery({ queryKey: ["dairy-on-hand-options"], queryFn: fetchDairy });
+  const dairy = data?.dairy;
+  const swappable = rows.filter((r) => !r.is_addin && r.weight_grams > 0 && isSwappableDairy(r.ingredient));
   const [replace, setReplace] = useState<Set<string>>(() => new Set(swappable.map(rowKey)));
   const [onHand, setOnHand] = useState<Set<string>>(loadOnHand);
 
@@ -63,7 +73,8 @@ export function DairySwapModal({ rows, onApply, onClose }: DairySwapModalProps) 
     .filter((r) => replace.has(rowKey(r)))
     .map((r) => ({ ingredient: r.ingredient, grams: r.weight_grams }));
   const available = (dairy ?? []).filter((i) => onHand.has(i.id));
-  const plan = planDairySwap(current, available);
+  const plan = planDairySwap(current, available, data?.water);
+  const solidsChange = plan ? totalOf(plan.parts, (i) => i.msnf_pct ?? 0) - totalOf(current, (i) => i.msnf_pct ?? 0) : 0;
 
   const compare = (label: string, value: (i: Ingredient) => number, unit = "g") => {
     if (!plan) return null;
@@ -98,12 +109,13 @@ export function DairySwapModal({ rows, onApply, onClose }: DairySwapModalProps) 
           </button>
         </div>
         <p className="mb-4 text-sm text-base-content/60">
-          Milks and creams are fat plus skim, so the recipe&apos;s dairy can be rebuilt from what you have, keeping its
-          weight and fat (and so its water and most of its milk solids).
+          Milks, creams and milk powders are fat plus milk solids plus water, so the recipe&apos;s dairy can be rebuilt
+          from what you have, keeping its weight, fat and milk solids.{" "}
+          {data?.water ? "Water is always on hand, for reconstituting powder." : ""}
         </p>
 
         {swappable.length === 0 ? (
-          <p className="text-sm italic text-base-content/55">No milk, half and half or cream in the mix to swap.</p>
+          <p className="text-sm italic text-base-content/55">No milk, cream or milk powder in the mix to swap.</p>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             <fieldset>
@@ -161,9 +173,15 @@ export function DairySwapModal({ rows, onApply, onClose }: DairySwapModalProps) 
                 {plan.parts.map((p) => `${fmt(roundGrams(p.grams))} g ${p.ingredient.name}`).join(" + ")}
               </span>
             </div>
-            {!plan.exact && (
+            {!plan.fatKept && (
               <p className="mt-2 text-sm text-warning">
                 Nothing you have spans this fat level, so the closest one is used and the fat changes.
+              </p>
+            )}
+            {plan.fatKept && !plan.solidsKept && (
+              <p className="mt-2 text-sm text-warning">
+                Milk solids {solidsChange < 0 ? "drop" : "rise"} by {fmt(Math.abs(solidsChange))} g. Tick a milk powder
+                you have to make up the difference, or untick the powder in the recipe to leave it as it is.
               </p>
             )}
             <table className="table table-xs mt-2">

@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { IceCreamCone, Milk, Redo2, Scale, Undo2 } from "lucide-react";
 import { BalanceModal } from "./BalanceModal";
 import { DairySwapModal } from "./DairySwapModal";
-import { type DairyPart, isFluidDairy } from "../lib/dairySwap";
+import { type DairyPart, isSwappableDairy } from "../lib/dairySwap";
 import { BatchLog } from "./BatchLog";
 import { RecipeText } from "./RecipeText";
 import { keyFor, rowKey, type RecipeRow } from "../hooks/useRecipeCalculator";
@@ -376,8 +376,8 @@ export function CalculatorView() {
                   type="button"
                   className="btn btn-sm btn-outline gap-1 shrink-0"
                   onClick={() => setDairyOpen(true)}
-                  disabled={!rows.some((r) => !r.is_addin && r.weight_grams > 0 && isFluidDairy(r.ingredient))}
-                  title="Rebuild the milk and cream from what you have, keeping weight and fat"
+                  disabled={!rows.some((r) => !r.is_addin && r.weight_grams > 0 && isSwappableDairy(r.ingredient))}
+                  title="Rebuild the milk, cream and milk powder from what you have, keeping weight, fat and milk solids"
                 >
                   <Milk size={14} /> Swap dairy
                 </button>
