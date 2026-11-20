@@ -336,8 +336,13 @@ def compare_to_target(
             _f(profile.total_fat_min),
             _f(profile.total_fat_max),
         ),
-        ("milk_fat", composition.milk_fat_pct, None, _f(profile.milk_fat_max)),
-        ("msnf", composition.msnf_pct, None, _f(profile.msnf_max)),
+        (
+            "milk_fat",
+            composition.milk_fat_pct,
+            _f(profile.milk_fat_min),
+            _f(profile.milk_fat_max),
+        ),
+        ("msnf", composition.msnf_pct, _f(profile.msnf_min), _f(profile.msnf_max)),
         (
             "stabilizer",
             composition.stabilizer_pct,
@@ -412,18 +417,24 @@ def _off_target(value: float, tmin: float | None, tmax: float | None) -> float:
     return max(0.0, 1.0 + over / scale)
 
 
+# How much each metric counts toward picking a profile (others count 1).
+FIT_WEIGHTS = {"pac": 0.5, "stabilizer": 0.25, "emulsifier": 0.25}
+
+
 def profile_fit_penalty(comparisons: list[MetricComparison]) -> float:
     """Lower is a better fit. Being outside a range costs quadratically, so one
     badly-missed metric outweighs several near-misses; a small term prefers
     centred values. PAC counts half: composition decides the style, while the
-    freezing target mostly reflects the machine. Serving temperature is the
-    same judgement as PAC, as is frozen_pct, so both are skipped."""
+    freezing target mostly reflects the machine. Stabilizer and emulsifier
+    count a quarter: they're process choices, not what makes a sherbet a
+    sherbet. Serving temperature is the same judgement as PAC, as is
+    frozen_pct, so both are skipped."""
     total = 0.0
     for c in comparisons:
         if c.metric in ("serving_temp", "frozen_pct"):
             continue
         s = _off_target(c.value, c.target_min, c.target_max)
-        weight = 0.5 if c.metric == "pac" else 1.0
+        weight = FIT_WEIGHTS.get(c.metric, 1.0)
         total += weight * (max(0.0, s - 1.0) ** 2 + 0.1 * min(s, 1.0))
     return total
 

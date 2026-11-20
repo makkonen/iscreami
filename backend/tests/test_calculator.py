@@ -646,3 +646,27 @@ class TestAddins:
             with_nuts.nutrition.per_100g["energy_kj"]
             > plain.nutrition.per_100g["energy_kj"]
         )
+
+
+class TestDairyMinimums:
+    """Milk fat and MSNF minimums are judged, not just maximums."""
+
+    def test_sherbet_needs_some_dairy(self):
+        profile = make_profile(
+            milk_fat_min=1.0, milk_fat_max=2.0, msnf_min=1.0, msnf_max=3.5
+        )
+        by_metric = {
+            c.metric: c
+            for c in compare_to_target(
+                _make_composition(milk_fat_pct=0.0, msnf_pct=0.0),
+                _make_sweetness(),
+                _make_freezing(),
+                profile,  # type: ignore[arg-type]
+            )
+        }
+        assert (by_metric["milk_fat"].target_min, by_metric["milk_fat"].target_max) == (
+            1.0,
+            2.0,
+        )
+        assert by_metric["milk_fat"].status == MetricStatus.below
+        assert by_metric["msnf"].status == MetricStatus.below
