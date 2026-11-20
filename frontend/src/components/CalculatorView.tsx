@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { DeleteRecipeMessage } from "./DeleteRecipeMessage";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Check, IceCreamCone, Milk, Pencil, Redo2, Scale, Undo2 } from "lucide-react";
+import { IceCreamCone, Lock, Milk, Pencil, Redo2, Scale, Undo2 } from "lucide-react";
 import { BalanceModal } from "./BalanceModal";
 import { DairySwapModal } from "./DairySwapModal";
 import { type DairyPart, isSwappableDairy } from "../lib/dairySwap";
@@ -354,16 +354,29 @@ export function CalculatorView() {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-1">
-                {!editing ? (
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-primary gap-1"
-                    onClick={() => setEditMode(true)}
-                    title="Unlock the sliders and weights to change the recipe"
-                  >
-                    <Pencil size={14} /> Edit
-                  </button>
-                ) : (
+                {/* One button in one place: Edit unlocks the recipe, Lock locks it again. */}
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary gap-1"
+                  onClick={() => setEditMode(!editing)}
+                  aria-pressed={editing}
+                  title={
+                    editing
+                      ? "Lock the recipe so scrolling past a slider can't change it"
+                      : "Unlock the sliders and weights to change the recipe"
+                  }
+                >
+                  {editing ? (
+                    <>
+                      <Lock size={14} /> Lock
+                    </>
+                  ) : (
+                    <>
+                      <Pencil size={14} /> Edit
+                    </>
+                  )}
+                </button>
+                {editing && (
                 <>
                 <div className="join">
                   <button
@@ -403,14 +416,6 @@ export function CalculatorView() {
                   title="Use the milk, cream and milk powder you have instead, keeping the same weight, fat and milk solids"
                 >
                   <Milk size={14} /> Swap dairy
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-ghost gap-1"
-                  onClick={() => setEditMode(false)}
-                  title="Lock the recipe so scrolling past a slider can't change it"
-                >
-                  <Check size={14} /> Done
                 </button>
                 </>
                 )}
