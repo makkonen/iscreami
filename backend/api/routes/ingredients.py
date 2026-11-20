@@ -114,6 +114,18 @@ def create_ingredient(data: IngredientCreate, db: DbSession):
     return ingredient
 
 
+def _sync_aliases(ingredient: Ingredient, names: list[str]) -> None:
+    """Make the ingredient's aliases match names, keeping the rows that stay.
+
+    Replacing the whole list would insert the new rows before deleting the
+    old ones, so saving an unchanged alias broke the unique constraint.
+    """
+    wanted = list(dict.fromkeys(names))
+    ingredient.aliases = [a for a in ingredient.aliases if a.alias in wanted]
+    have = {a.alias for a in ingredient.aliases}
+    ingredient.aliases.extend(IngredientAlias(alias=n) for n in wanted if n not in have)
+
+
 @router.put(
     "/{ingredient_id}", response_model=IngredientOut, responses=NOT_FOUND_RESPONSE
 )
@@ -132,7 +144,7 @@ def update_ingredient(ingredient_id: uuid.UUID, data: IngredientUpdate, db: DbSe
     apply_updates(ingredient, payload)
 
     if alias_names is not None:
-        ingredient.aliases = [IngredientAlias(alias=a) for a in alias_names]
+        _sync_aliases(ingredient, alias_names)
 
     db.commit()
     db.refresh(ingredient, attribute_names=["category", "aliases"])
