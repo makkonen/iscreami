@@ -5,8 +5,16 @@ from __future__ import annotations
 import uuid
 from datetime import date, datetime
 from enum import StrEnum
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    computed_field,
+    field_validator,
+)
 
 from api.services.composition import ingredient_total_solids_pct
 from api.services.pac import ingredient_pac
@@ -186,6 +194,18 @@ class TargetProfileOut(TargetProfileBase):
 # --- Recipe ---
 
 MAX_RECIPE_TAGS = 30
+
+
+def check_stars(value: float | None) -> float | None:
+    """A star rating: 1 to 5 in half stars, or none."""
+    if value is None:
+        return None
+    if not 1 <= value <= 5 or value * 2 != int(value * 2):
+        raise ValueError("ratings are 1 to 5 stars, in half stars")
+    return float(value)
+
+
+Stars = Annotated[float | None, AfterValidator(check_stars)]
 MAX_RECIPE_TEXT = 20000  # notes and instructions
 
 
@@ -231,6 +251,7 @@ class RecipeCreate(BaseModel):
     target_profile_id: uuid.UUID | None = None
     parent_id: uuid.UUID | None = None
     tags: list[str] = Field(default_factory=list, max_length=MAX_RECIPE_TAGS)
+    rating: Stars = None
     ingredients: list[RecipeIngredientInput] = Field(
         default_factory=list, max_length=MAX_RECIPE_INGREDIENTS
     )
@@ -246,6 +267,7 @@ class RecipeUpdate(BaseModel):
     serving_method: str | None = Field(default=None, max_length=50)
     target_profile_id: uuid.UUID | None = None
     tags: list[str] | None = Field(default=None, max_length=MAX_RECIPE_TAGS)
+    rating: Stars = None
     ingredients: list[RecipeIngredientInput] | None = Field(
         default=None, max_length=MAX_RECIPE_INGREDIENTS
     )
@@ -265,6 +287,7 @@ class RecipeOut(BaseModel):
     target_profile: TargetProfileOut | None = None
     parent_id: uuid.UUID | None = None
     tags: list[str] = []
+    rating: float | None = None
     created_at: datetime
     updated_at: datetime
     ingredients: list[RecipeIngredientOut] = []
@@ -300,7 +323,7 @@ class BatchBase(BaseModel):
     hardness: int | None = Field(default=None, ge=-2, le=2)
     sweetness: int | None = Field(default=None, ge=-2, le=2)
     iciness: int | None = Field(default=None, ge=0, le=3)
-    overall: int | None = Field(default=None, ge=1, le=5)
+    overall: Stars = None
     notes: str | None = Field(default=None, max_length=5000)
 
 
@@ -316,7 +339,7 @@ class BatchUpdate(BaseModel):
     hardness: int | None = Field(default=None, ge=-2, le=2)
     sweetness: int | None = Field(default=None, ge=-2, le=2)
     iciness: int | None = Field(default=None, ge=0, le=3)
-    overall: int | None = Field(default=None, ge=1, le=5)
+    overall: Stars = None
     notes: str | None = Field(default=None, max_length=5000)
 
 
@@ -469,6 +492,7 @@ class RecipeExportOut(BaseModel):
     recipe_type: str | None = None
     serving_method: str | None = None
     tags: list[str] = []
+    rating: float | None = None
     created_at: str
     updated_at: str
     total_weight_grams: float

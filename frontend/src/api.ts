@@ -119,6 +119,7 @@ export function updateRecipe(
         description?: string | null;
         instructions?: string | null;
         tags?: string[];
+        rating?: number | null;
         target_profile_id?: string | null;
         serving_method?: string | null;
         ingredients?: { ingredient_id: string; weight_grams: number; sort_order: number; is_addin?: boolean }[];

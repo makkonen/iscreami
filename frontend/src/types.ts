@@ -235,6 +235,8 @@ export interface Recipe {
     parent_id?: string | null;
     /** "/" nests tags, e.g. "Status/Retired". */
     tags?: string[];
+    /** 1-5 stars in half stars; null when unrated. */
+    rating?: number | null;
     total_weight_grams: number;
     created_at: string;
     updated_at: string;

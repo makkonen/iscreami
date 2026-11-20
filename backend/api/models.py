@@ -215,6 +215,8 @@ class Recipe(Base):
         UUID(as_uuid=True), ForeignKey("recipes.id", ondelete="SET NULL")
     )
     # Free-form tags; "/" nests them, e.g. "Status/Retired" or "Base/Chocolate".
+    # Star rating, 1-5 in half stars.
+    rating: Mapped[float | None] = mapped_column(Numeric(2, 1))
     tags: Mapped[list[str]] = mapped_column(
         JSON().with_variant(JSONB, "postgresql"),
         nullable=False,
@@ -298,8 +300,8 @@ class RecipeBatch(Base):
     sweetness: Mapped[int | None] = mapped_column(Integer)
     # 0 smooth .. 3 very icy.
     iciness: Mapped[int | None] = mapped_column(Integer)
-    # 1..5 overall.
-    overall: Mapped[int | None] = mapped_column(Integer)
+    # Overall, 1-5 stars in half stars.
+    overall: Mapped[float | None] = mapped_column(Numeric(2, 1))
     notes: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

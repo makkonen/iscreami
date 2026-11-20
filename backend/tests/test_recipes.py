@@ -110,3 +110,26 @@ class TestRecipeText:
             "Notes",
             "Steep overnight",
         )
+
+
+class TestRatings:
+    """Ratings are 1-5 stars in half stars."""
+
+    def test_half_stars_save(self, test_db):
+        from api.routes.recipes import create_recipe, update_recipe
+        from api.schemas import RecipeCreate, RecipeUpdate
+
+        recipe = create_recipe(RecipeCreate(name="Rated", rating=3.5), test_db)
+        assert float(recipe.rating) == 3.5
+        cleared = update_recipe(recipe.id, RecipeUpdate(rating=None), test_db)
+        assert cleared.rating is None
+
+    def test_rejects_off_scale(self):
+        from api.schemas import BatchUpdate, RecipeUpdate
+
+        for bad in (0.5, 5.5, 3.2):
+            with pytest.raises(ValueError):
+                RecipeUpdate(rating=bad)
+        with pytest.raises(ValueError):
+            BatchUpdate(overall=4.25)
+        assert BatchUpdate(overall=4.5).overall == 4.5

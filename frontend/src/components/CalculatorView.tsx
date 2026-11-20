@@ -293,6 +293,8 @@ export function CalculatorView() {
             allTags={allTags}
             onChangeTags={(tags) => void updateDetails({ tags })}
             onRename={(name) => updateDetails({ name })}
+            rating={currentRecipe?.rating ?? null}
+            onRate={(rating) => void updateDetails({ rating })}
             onChangeProfile={changeProfile}
           />
         </div>

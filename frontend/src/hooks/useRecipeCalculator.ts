@@ -38,7 +38,7 @@ interface RecipeIngredientInput {
 
 // Rows are persisted in display order; sort_order mirrors the array index.
 /** Recipe fields that save on their own, outside the mix's unsaved edits. */
-export type RecipeDetails = Partial<Pick<Recipe, "name" | "description" | "instructions" | "tags">>;
+export type RecipeDetails = Partial<Pick<Recipe, "name" | "description" | "instructions" | "tags" | "rating">>;
 
 /** The parts of the editor that undo and redo step through. */
 interface EditorState {

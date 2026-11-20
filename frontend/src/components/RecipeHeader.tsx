@@ -1,6 +1,7 @@
 import { Copy, GitBranch, RotateCcw, Save, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { TagEditor } from "./TagEditor";
+import { StarRating } from "./StarRating";
 import { RecipeName } from "./RecipeName";
 import type { CalculateResponse, Recipe, ServingMethod, TargetProfile } from "../types";
 import { Tooltip } from "./Tooltip";
@@ -209,6 +210,8 @@ interface RecipeHeaderProps {
   readonly onChangeTags?: (tags: string[]) => void;
   /** Saves a new name; resolves to whether it saved. */
   readonly onRename?: (name: string) => Promise<boolean>;
+  readonly rating?: number | null;
+  readonly onRate?: (rating: number | null) => void;
 }
 
 export function RecipeHeader({
@@ -235,6 +238,8 @@ export function RecipeHeader({
   allTags = [],
   onChangeTags,
   onRename,
+  rating = null,
+  onRate,
 }: RecipeHeaderProps) {
   const effectiveProfile = targetProfile ?? suggestedProfile;
   const custom = parseCustomServing(servingMethod);
@@ -301,7 +306,8 @@ export function RecipeHeader({
               </p>
             )}
             {recipeName && onChangeTags && (
-              <div className="mb-1.5">
+              <div className="mb-1.5 flex flex-wrap items-center gap-x-4 gap-y-1">
+                {onRate && <StarRating value={rating} onChange={onRate} label="Recipe rating" />}
                 <TagEditor tags={tags} allTags={allTags} onChange={onChangeTags} />
               </div>
             )}

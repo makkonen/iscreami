@@ -71,6 +71,7 @@ def build_export_single(
             "recipe_type": recipe.recipe_type,
             "serving_method": recipe.serving_method,
             "tags": recipe.tags or [],
+            "rating": float(recipe.rating) if recipe.rating is not None else None,
             "created_at": recipe.created_at.isoformat(),
             "updated_at": recipe.updated_at.isoformat(),
             "total_weight_grams": float(total_weight_g),

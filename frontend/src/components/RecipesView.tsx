@@ -47,6 +47,10 @@ export function RecipesView() {
     return words.every((w) => text.includes(w));
   });
   const filtering = words.length > 0 || tagFilter != null;
+  // The list comes newest-first from the server.
+  const [sort, setSort] = useState<"updated" | "rating" | "name">("updated");
+  if (sort === "rating") shown.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+  else if (sort === "name") shown.sort((a, b) => a.name.localeCompare(b.name));
   // The tag levels to offer: the top level, then each chosen level's children.
   const tagRows: { parent: string | null; tags: string[] }[] = [];
   if (counts.size > 0) {
@@ -181,6 +185,16 @@ export function RecipesView() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
+            <select
+              className="select select-sm w-auto shrink-0"
+              value={sort}
+              onChange={(e) => setSort(e.target.value as typeof sort)}
+              aria-label="Sort recipes"
+            >
+              <option value="updated">Recently updated</option>
+              <option value="rating">Highest rated</option>
+              <option value="name">Name</option>
+            </select>
             {filtering && (
               <span className="text-xs text-base-content/55 shrink-0">
                 {shown.length} of {recipes.length}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, Download, Pencil, Plus, Star, Trash2 } from "lucide-react";
+import { ClipboardList, Download, Pencil, Plus, Trash2 } from "lucide-react";
+import { StarRating } from "./StarRating";
 import { createBatch, deleteBatch, fetchBatches, updateBatch } from "../api";
 import { keyFor, rowKey, type RecipeRow } from "../hooks/useRecipeCalculator";
 import { useEscape } from "../hooks/useEscape";
@@ -149,13 +150,7 @@ export function BatchLog({ recipeId, rows, result, profileName, servingMethod, s
             <li key={b.id} className="rounded-lg border border-base-200 p-3">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span className="font-medium">{fmtDate(b.made_on)}</span>
-                {b.overall != null && (
-                  <span className="flex text-warning" aria-label={`${b.overall} out of 5`}>
-                    {[1, 2, 3, 4, 5].map((n) => (
-                      <Star key={n} size={13} fill={n <= b.overall! ? "currentColor" : "none"} aria-hidden="true" />
-                    ))}
-                  </span>
-                )}
+                {b.overall != null && <StarRating value={b.overall} size={13} />}
                 {labelOf(b.serving_method) && (
                   <span className="text-xs text-base-content/55">{labelOf(b.serving_method)}</span>
                 )}
@@ -316,7 +311,10 @@ function BatchModal({ batch, defaultServing, servingMethods, onSave, onClose }: 
             </select>
           </label>
         </div>
-        <Scale label="Overall" options={["1", "2", "3", "4", "5"]} start={1} value={r.overall} onChange={(v) => set({ overall: v })} />
+        <div className="mb-3">
+          <div className="mb-1 text-sm font-medium">Overall</div>
+          <StarRating value={r.overall} onChange={(v) => set({ overall: v })} size={22} label="Overall rating" />
+        </div>
         <Scale label="Hardness" options={HARDNESS} start={-2} value={r.hardness} onChange={(v) => set({ hardness: v })} />
         <Scale label="Sweetness" options={SWEETNESS} start={-2} value={r.sweetness} onChange={(v) => set({ sweetness: v })} />
         <Scale label="Iciness" options={ICINESS} start={0} value={r.iciness} onChange={(v) => set({ iciness: v })} />
