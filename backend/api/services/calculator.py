@@ -29,7 +29,7 @@ from api.services.freezing import (
     freezing_point,
     frozen_water_fraction,
 )
-from api.services.pac import recipe_pac
+from api.services.pac import msnf_for_freezing, recipe_pac
 from api.services.serving import ServingTarget, serving_method
 from api.services.sweetness import recipe_pod
 from api.settings import settings
@@ -63,6 +63,10 @@ def calculate_composition(
     trans_fat = _weighted_pct(items, "trans_fat_pct", total_weight)
     milk_fat = _weighted_pct(items, "milk_fat_pct", total_weight)
     msnf = _weighted_pct(items, "msnf_pct", total_weight)
+    msnf_for_freezing_total = sum(msnf_for_freezing(i) * w / 100.0 for i, w in items)
+    msnf_freezing = (
+        msnf_for_freezing_total / total_weight * 100.0 if total_weight > 0 else 0.0
+    )
     total_sugar = _weighted_pct(items, "total_sugar_pct", total_weight)
     protein = _weighted_pct(items, "protein_pct", total_weight)
     carbohydrate = _weighted_pct(items, "carbohydrate_pct", total_weight)
@@ -80,6 +84,7 @@ def calculate_composition(
         trans_fat_pct=round(trans_fat, 2),
         milk_fat_pct=round(milk_fat, 2),
         msnf_pct=round(msnf, 2),
+        msnf_for_freezing_pct=round(msnf_freezing, 2),
         total_sugar_pct=round(total_sugar, 2),
         protein_pct=round(protein, 2),
         carbohydrate_pct=round(carbohydrate, 2),
@@ -102,7 +107,7 @@ def calculate_freezing(
     pac_result: PACResult, composition: CompositionResult
 ) -> FreezingResult:
     pac_water = pac_result.pac_water
-    msnf_pct = composition.msnf_pct
+    msnf_pct = composition.msnf_for_freezing_pct
     water_pct = composition.water_pct
 
     fp = freezing_point(pac_water, msnf_pct, water_pct)
@@ -265,7 +270,7 @@ def compare_to_target(
     itself ("frozen_pct").
     """
     checks: list[tuple[str, float, float | None, float | None]] = []
-    water, msnf = composition.water_pct, composition.msnf_pct
+    water, msnf = composition.water_pct, composition.msnf_for_freezing_pct
     if serving is not None and pac is not None and water > 0:
         softest = pac_water_for_frozen_pct(
             serving.eating_temp_c, serving.frozen_pct_min, msnf, water
@@ -307,12 +312,12 @@ def compare_to_target(
                 "pac",
                 pac.pac_mix,
                 pac_mix_for_serving_temp(
-                    temp_max, composition.msnf_pct, composition.water_pct
+                    temp_max, composition.msnf_for_freezing_pct, composition.water_pct
                 )
                 if temp_max is not None
                 else None,
                 pac_mix_for_serving_temp(
-                    temp_min, composition.msnf_pct, composition.water_pct
+                    temp_min, composition.msnf_for_freezing_pct, composition.water_pct
                 )
                 if temp_min is not None
                 else None,

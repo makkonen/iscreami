@@ -30,6 +30,38 @@ SODIUM_TO_NACL = 2.58
 # mg → g conversion
 MG_TO_G = 0.001
 
+# Milk's own minerals depress the freezing point through the MSNF term in the
+# freezing model, at the mineral share of ordinary milk solids. Milk carries
+# about 4.6 mg sodium per g MSNF (whole milk: ~40 mg per 8.7 g), and sodium
+# tracks the other milk salts closely enough to measure that share by:
+# - sodium beyond 4.6 mg per g MSNF is added salt (cottage cheese, salted
+#   butter) and counts here, as NaCl;
+# - MSNF with less sodium than that (whey protein isolate, ~1.8 mg/g) has
+#   fewer milk salts, so only part of it counts toward the freezing model.
+MILK_SODIUM_MG_PER_G_MSNF = 4.6
+
+
+def salt_sodium_mg(ingredient: Ingredient) -> float:
+    """Sodium per 100 g beyond what the ingredient's milk solids carry."""
+    sodium = float(ingredient.sodium_mg or 0)
+    msnf = float(ingredient.msnf_pct or 0)
+    return max(0.0, sodium - MILK_SODIUM_MG_PER_G_MSNF * msnf)
+
+
+def msnf_for_freezing(ingredient: Ingredient) -> float:
+    """MSNF per 100 g, scaled to the milk salts it actually carries.
+
+    Ordinary milk solids count in full. Low-mineral milk solids (protein
+    isolates) count in proportion to their sodium. With no sodium figure,
+    or none at all, they're assumed to be ordinary.
+    """
+    msnf = float(ingredient.msnf_pct or 0)
+    sodium = float(ingredient.sodium_mg or 0)
+    if msnf <= 0 or sodium <= 0:
+        return msnf
+    return min(msnf, sodium / MILK_SODIUM_MG_PER_G_MSNF)
+
+
 # Ethanol MW 46.07 → factor 743
 ETHANOL_PAC_FACTOR = 743.0
 
@@ -52,9 +84,10 @@ def ingredient_pac(ingredient: Ingredient) -> float:
     for sugar_name, pct in sugar_contributions_per_100g(ingredient):
         pac += pct * PAC_FACTORS[sugar_name] / 100.0
 
-    # Sodium contribution (converted to NaCl equivalent)
-    if ingredient.sodium_mg is not None and ingredient.sodium_mg > 0:
-        sodium_g_per_100g = float(ingredient.sodium_mg) * MG_TO_G
+    # Added salt (sodium beyond milk solids' own), converted to NaCl
+    salt_sodium = salt_sodium_mg(ingredient)
+    if salt_sodium > 0:
+        sodium_g_per_100g = salt_sodium * MG_TO_G
         # sodium_g × NaCl/Na ratio × NaCl PAC factor / 100
         pac += sodium_g_per_100g * SODIUM_TO_NACL * NACL_PAC_FACTOR / 100.0
 

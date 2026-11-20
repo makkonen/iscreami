@@ -365,6 +365,9 @@ class CompositionResult(BaseModel):
     trans_fat_pct: float
     milk_fat_pct: float
     msnf_pct: float
+    # MSNF scaled to the milk salts it carries, as the freezing model uses it
+    # (lower than msnf_pct when whey protein isolate and the like are in).
+    msnf_for_freezing_pct: float = 0.0
     total_sugar_pct: float
     protein_pct: float
     carbohydrate_pct: float

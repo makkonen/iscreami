@@ -51,6 +51,8 @@ def _make_composition(**kwargs):
         "emulsifier_pct": 0.2,
     }
     defaults.update(kwargs)
+    # Ordinary milk solids unless a test says otherwise.
+    defaults.setdefault("msnf_for_freezing_pct", defaults["msnf_pct"])
     return CompositionResult(**defaults)
 
 
