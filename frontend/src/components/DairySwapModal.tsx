@@ -74,6 +74,7 @@ export function DairySwapModal({ rows, onApply, onClose }: DairySwapModalProps) 
     .map((r) => ({ ingredient: r.ingredient, grams: r.weight_grams }));
   const available = (dairy ?? []).filter((i) => onHand.has(i.id));
   const plan = planDairySwap(current, available, data?.water);
+  const fatChange = plan ? totalOf(plan.parts, (i) => i.total_fat_pct ?? 0) - totalOf(current, (i) => i.total_fat_pct ?? 0) : 0;
   const solidsChange = plan ? totalOf(plan.parts, (i) => i.msnf_pct ?? 0) - totalOf(current, (i) => i.msnf_pct ?? 0) : 0;
 
   const compare = (label: string, value: (i: Ingredient) => number, unit = "g") => {
@@ -109,9 +110,9 @@ export function DairySwapModal({ rows, onApply, onClose }: DairySwapModalProps) 
           </button>
         </div>
         <p className="mb-4 text-sm text-base-content/60">
-          Milks, creams and milk powders are fat plus milk solids plus water, so the recipe&apos;s dairy can be rebuilt
-          from what you have, keeping its weight, fat and milk solids.{" "}
-          {data?.water ? "Water is always on hand, for reconstituting powder." : ""}
+          Use the milk, cream and milk powder you have instead of what the recipe calls for. The amounts keep the
+          recipe&apos;s weight, fat and milk solids the same, so it should freeze and taste much the same.
+          {data?.water ? " Water is added when powder needs reconstituting." : ""}
         </p>
 
         {swappable.length === 0 ? (
@@ -119,7 +120,7 @@ export function DairySwapModal({ rows, onApply, onClose }: DairySwapModalProps) 
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             <fieldset>
-              <legend className="mb-1 text-sm font-medium">Replace</legend>
+              <legend className="mb-1 text-sm font-medium">Swap out</legend>
               {swappable.map((r) => (
                 <label key={rowKey(r)} className="flex cursor-pointer items-center gap-2 py-0.5 text-sm">
                   <input
@@ -134,7 +135,7 @@ export function DairySwapModal({ rows, onApply, onClose }: DairySwapModalProps) 
               ))}
             </fieldset>
             <fieldset>
-              <legend className="mb-1 text-sm font-medium">What you have</legend>
+              <legend className="mb-1 text-sm font-medium">What you have on hand</legend>
               {!dairy && <span className="loading loading-dots loading-sm" />}
               {dairy?.map((i) => (
                 <label key={i.id} className="flex cursor-pointer items-center gap-2 py-0.5 text-sm">
@@ -159,7 +160,7 @@ export function DairySwapModal({ rows, onApply, onClose }: DairySwapModalProps) 
         )}
 
         {current.length > 0 && available.length === 0 && (
-          <p className="mt-4 text-sm text-base-content/55">Tick what you have to see the swap.</p>
+          <p className="mt-4 text-sm text-base-content/55">Tick what you have on hand to see the amounts.</p>
         )}
 
         {plan && (
@@ -175,21 +176,25 @@ export function DairySwapModal({ rows, onApply, onClose }: DairySwapModalProps) 
             </div>
             {!plan.fatKept && (
               <p className="mt-2 text-sm text-warning">
-                Nothing you have spans this fat level, so the closest one is used and the fat changes.
+                {fatChange < 0
+                  ? "Nothing you've ticked is rich enough to match the fat, so this will be leaner."
+                  : "Nothing you've ticked is lean enough to match the fat, so this will be richer."}{" "}
+                ({fatChange < 0 ? "−" : "+"}
+                {fmt(Math.abs(fatChange))} g fat)
               </p>
             )}
             {plan.fatKept && !plan.solidsKept && (
               <p className="mt-2 text-sm text-warning">
-                Milk solids {solidsChange < 0 ? "drop" : "rise"} by {fmt(Math.abs(solidsChange))} g. Tick a milk powder
-                you have to make up the difference, or untick the powder in the recipe to leave it as it is.
+                This has {fmt(Math.abs(solidsChange))} g {solidsChange < 0 ? "less" : "more"} milk solids than the
+                recipe. Tick a milk powder to make up the difference, or untick the recipe&apos;s powder to leave it in.
               </p>
             )}
             <table className="table table-xs mt-2">
               <thead>
                 <tr>
-                  <th>In the dairy</th>
+                  <th>Dairy totals</th>
                   <th className="text-right">Now</th>
-                  <th className="text-right">After</th>
+                  <th className="text-right">Swapped</th>
                   <th className="text-right">Change</th>
                 </tr>
               </thead>
@@ -220,7 +225,7 @@ export function DairySwapModal({ rows, onApply, onClose }: DairySwapModalProps) 
               )
             }
           >
-            Apply swap
+            Swap
           </button>
         </div>
       </div>

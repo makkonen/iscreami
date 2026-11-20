@@ -377,7 +377,7 @@ export function CalculatorView() {
                   className="btn btn-sm btn-outline gap-1 shrink-0"
                   onClick={() => setDairyOpen(true)}
                   disabled={!rows.some((r) => !r.is_addin && r.weight_grams > 0 && isSwappableDairy(r.ingredient))}
-                  title="Rebuild the milk, cream and milk powder from what you have, keeping weight, fat and milk solids"
+                  title="Use the milk, cream and milk powder you have instead, keeping the same weight, fat and milk solids"
                 >
                   <Milk size={14} /> Swap dairy
                 </button>
