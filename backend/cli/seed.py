@@ -38,8 +38,17 @@ CATEGORIES = [
 # usually served (see api/services/serving.py). The serving method sets the
 # freezing target; a recipe can pick its own, otherwise its profile's usual one
 # applies. Defaults reflect a Creami user: regular ice cream is spun, hardened
-# at -18 C and tempered before scooping, while lean lite/protein/froyo bases are
-# eaten straight off a lite spin (they would be rock-hard at -18 C).
+# at -18 C and tempered before scooping, while lean low-fat and high-protein
+# bases are eaten straight off a lite spin (they would be rock-hard at -18 C).
+#
+# Profiles describe what the calculator can measure. It can't tell yogurt from
+# milk (cultures and acidity aren't modelled), so frozen yogurt is a low-fat
+# mix by composition; tag recipes Style/Frozen yogurt to find them.
+#
+# Sherbet and sorbet follow the US standards: sherbet has 1-2% milk fat, at
+# least 1% milk solids-not-fat and 2-5% total milk solids (21 CFR 135.140);
+# water ice, the nearest standard to sorbet, has no milk or milk-derived
+# ingredient at all (21 CFR 135.160).
 #
 # Sources: Goff & Hartel composition tables, including frozen yogurt (see
 # docs/ref/reddit-guide.md); the Ninja Creami guidance there; US nutrition labels
@@ -89,18 +98,21 @@ TARGET_PROFILES = [
         emulsifier_max=0.3,
     ),
     _profile(
-        "Lite ice cream",
+        # A dairy base with little fat; frozen yogurt by composition. The MSNF
+        # floor keeps sherbets and sorbets out.
+        "Low-fat",
         default_serving_method="creami_lite",
         sweetness_min=13.0,
         sweetness_max=20.0,
-        total_solids_min=24.0,
+        total_solids_min=22.0,
         total_solids_max=34.0,
         total_fat_min=0.0,
         total_fat_max=6.0,
         milk_fat_max=6.0,
-        msnf_max=12.0,
-        stabilizer_min=0.2,
-        stabilizer_max=0.8,
+        msnf_min=6.0,
+        msnf_max=14.0,
+        stabilizer_min=0.1,
+        stabilizer_max=0.7,
         emulsifier_min=0.0,
         emulsifier_max=0.4,
     ),
@@ -114,45 +126,12 @@ TARGET_PROFILES = [
         total_fat_min=0.0,
         total_fat_max=5.0,
         milk_fat_max=5.0,
-        protein_min=10.0,
+        protein_min=8.0,
         protein_max=18.0,
         stabilizer_min=0.1,
         stabilizer_max=0.6,
         emulsifier_min=0.0,
         emulsifier_max=0.4,
-    ),
-    _profile(
-        "Frozen yogurt",
-        default_serving_method="creami_lite",
-        sweetness_min=14.0,
-        sweetness_max=20.0,
-        total_solids_min=26.0,
-        total_solids_max=36.0,
-        total_fat_min=0.0,
-        total_fat_max=6.0,
-        milk_fat_max=6.0,
-        msnf_max=14.0,
-        stabilizer_min=0.3,
-        stabilizer_max=0.7,
-        emulsifier_min=0.0,
-        emulsifier_max=0.3,
-    ),
-    _profile(
-        "Frozen yogurt · Greek / high-protein",
-        default_serving_method="creami_lite",
-        sweetness_min=13.0,
-        sweetness_max=20.0,
-        total_solids_min=24.0,
-        total_solids_max=34.0,
-        total_fat_min=0.0,
-        total_fat_max=5.0,
-        milk_fat_max=5.0,
-        protein_min=6.0,
-        protein_max=12.0,
-        stabilizer_min=0.1,
-        stabilizer_max=0.6,
-        emulsifier_min=0.0,
-        emulsifier_max=0.3,
     ),
     _profile(
         "Sherbet",
@@ -163,8 +142,11 @@ TARGET_PROFILES = [
         total_solids_max=35.0,
         total_fat_min=1.0,
         total_fat_max=3.0,
-        milk_fat_max=3.0,
-        msnf_max=5.0,
+        milk_fat_min=1.0,
+        milk_fat_max=2.0,
+        # With 1-2% milk fat, this keeps total milk solids near 2-5%.
+        msnf_min=1.0,
+        msnf_max=3.5,
         stabilizer_min=0.2,
         stabilizer_max=0.5,
         emulsifier_min=0.0,
@@ -179,8 +161,9 @@ TARGET_PROFILES = [
         total_solids_max=33.0,
         total_fat_min=0.0,
         total_fat_max=2.0,
-        milk_fat_max=2.0,
-        msnf_max=2.0,
+        # No dairy at all.
+        milk_fat_max=0.0,
+        msnf_max=0.0,
         stabilizer_min=0.2,
         stabilizer_max=0.6,
         emulsifier_min=0.0,
