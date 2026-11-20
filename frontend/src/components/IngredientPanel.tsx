@@ -44,6 +44,8 @@ interface IngredientPanelProps {
   /** Move a row to where another row is (drag to reorder). */
   readonly onMoveRow: (fromKey: string, toKey: string) => void;
   readonly onSortByAmount: () => void;
+  /** View only: hide the edit buttons (the caller disables the inputs). */
+  readonly readOnly?: boolean;
 }
 
 /** Drag-handle props: only the grip starts a drag, so sliders never do. */
@@ -159,6 +161,7 @@ export function IngredientPanel({
   onToggleLock,
   onMoveRow,
   onSortByAmount,
+  readOnly = false,
 }: IngredientPanelProps) {
   // Rows show in the recipe's own order (drag to change it; it saves with the
   // recipe), so nothing re-sorts under you while editing. The weight each row
@@ -280,18 +283,20 @@ export function IngredientPanel({
         {/* On phones the name takes its own line, with the slider beside the grams below it. */}
         <div className="min-w-0 col-span-full sm:col-span-1">
           <span className="text-sm font-medium flex items-start gap-1" title={name}>
-            <button
-              type="button"
-              ref={handle.ref}
-              {...handle.attributes}
-              {...handle.listeners}
-              className="shrink-0 -ml-1 cursor-grab touch-none text-base-content/25 hover:text-base-content/60 active:cursor-grabbing"
-              aria-label={`Reorder ${name}`}
-              title="Drag to reorder"
-            >
-              <GripVertical size={13} />
-            </button>
-            {!row.is_addin && (
+            {!readOnly && (
+              <button
+                type="button"
+                ref={handle.ref}
+                {...handle.attributes}
+                {...handle.listeners}
+                className="shrink-0 -ml-1 cursor-grab touch-none text-base-content/25 hover:text-base-content/60 active:cursor-grabbing"
+                aria-label={`Reorder ${name}`}
+                title="Drag to reorder"
+              >
+                <GripVertical size={13} />
+              </button>
+            )}
+            {!row.is_addin && !readOnly && (
               <button
                 type="button"
                 onClick={() => onToggleLock(key)}
@@ -351,23 +356,31 @@ export function IngredientPanel({
         <span className="text-right text-sm tabular-nums text-base-content/60">
           {pct.toFixed(pct < 1 ? 2 : 1)}%
         </span>
-        <button
-          type="button"
-          onClick={() => onToggleAddin(key)}
-          className="btn btn-ghost btn-xs text-base-content/40 hover:text-primary"
-          aria-label={row.is_addin ? `Move ${name} into the mix` : `Make ${name} an add-in`}
-          title={row.is_addin ? "Move into the mix" : "Make an add-in (folded in after freezing)"}
-        >
-          {row.is_addin ? <CornerUpLeft size={14} /> : <CornerDownRight size={14} />}
-        </button>
-        <button
-          type="button"
-          onClick={() => onRemove(key)}
-          className="btn btn-ghost btn-xs text-base-content/40 hover:text-error"
-          aria-label={`Remove ${name}`}
-        >
-          <Trash2 size={14} />
-        </button>
+        {readOnly ? (
+          <span />
+        ) : (
+          <button
+            type="button"
+            onClick={() => onToggleAddin(key)}
+            className="btn btn-ghost btn-xs text-base-content/40 hover:text-primary"
+            aria-label={row.is_addin ? `Move ${name} into the mix` : `Make ${name} an add-in`}
+            title={row.is_addin ? "Move into the mix" : "Make an add-in (folded in after freezing)"}
+          >
+            {row.is_addin ? <CornerUpLeft size={14} /> : <CornerDownRight size={14} />}
+          </button>
+        )}
+        {readOnly ? (
+          <span />
+        ) : (
+          <button
+            type="button"
+            onClick={() => onRemove(key)}
+            className="btn btn-ghost btn-xs text-base-content/40 hover:text-error"
+            aria-label={`Remove ${name}`}
+          >
+            <Trash2 size={14} />
+          </button>
+        )}
       </div>
     );
   }
@@ -400,14 +413,16 @@ export function IngredientPanel({
               each is the weight range that keeps every target and typical-use limit in spec, with the
               rest of the recipe unchanged.
             </p>
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs shrink-0 gap-1 text-base-content/60"
-              onClick={onSortByAmount}
-              title="Re-sort largest first"
-            >
-              <ArrowDownWideNarrow size={13} /> Sort
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs shrink-0 gap-1 text-base-content/60"
+                onClick={onSortByAmount}
+                title="Re-sort largest first"
+              >
+                <ArrowDownWideNarrow size={13} /> Sort
+              </button>
+            )}
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={sortedMix.map((r) => r.key)} strategy={verticalListSortingStrategy}>

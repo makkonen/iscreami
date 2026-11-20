@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { DeleteRecipeMessage } from "./DeleteRecipeMessage";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { IceCreamCone, Milk, Redo2, Scale, Undo2 } from "lucide-react";
+import { Check, IceCreamCone, Milk, Pencil, Redo2, Scale, Undo2 } from "lucide-react";
 import { BalanceModal } from "./BalanceModal";
 import { DairySwapModal } from "./DairySwapModal";
 import { type DairyPart, isSwappableDairy } from "../lib/dairySwap";
@@ -47,6 +47,9 @@ function swapDairy(rows: RecipeRow[], keys: string[], parts: DairyPart[]): Recip
   const next = [...kept.slice(0, before), ...added, ...kept.slice(before)];
   return next.map((r, i) => ({ ...r, sort_order: i }));
 }
+
+// A phone or tablet: no fine pointer, so sliders get hit while scrolling.
+const IS_TOUCH = typeof window !== "undefined" && !!window.matchMedia?.("(pointer: coarse)").matches;
 
 // Advisory metrics (stabilizer, emulsifier) don't count toward "in range".
 const counted = (c: MetricComparison) => isTargeted(c) && !c.advisory;
@@ -184,6 +187,13 @@ export function CalculatorView() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [balanceOpen, setBalanceOpen] = useState(false);
   const [dairyOpen, setDairyOpen] = useState(false);
+  // Read-only until "Edit" for saved recipes on touch screens, where scrolling
+  // past a slider would change it; editable by default elsewhere. A choice
+  // made with Edit/Done holds for the recipe it was made on.
+  const [editChoice, setEditChoice] = useState<{ id: string | null; editing: boolean } | null>(null);
+  const recipeKey = currentRecipe?.id ?? null;
+  const editing = editChoice && editChoice.id === recipeKey ? editChoice.editing : !(IS_TOUCH && recipeKey);
+  const setEditMode = (on: boolean) => setEditChoice({ id: recipeKey, editing: on });
   const [newRecipeName, setNewRecipeName] = useState("");
   // Whether the name dialog is saving a duplicate of the open recipe.
   const [duplicating, setDuplicating] = useState(false);
@@ -334,7 +344,7 @@ export function CalculatorView() {
           {/* Left: Ingredient Panel */}
           <div>
             <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4">
-              <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-semibold uppercase tracking-wider text-base-content/50">
                     Ingredients
@@ -343,7 +353,18 @@ export function CalculatorView() {
                     Build the mix here. Lock rows you want left alone, then balance.
                   </p>
                 </div>
-                <div className="flex items-center gap-1 shrink-0">
+                <div className="flex flex-wrap items-center gap-1">
+                {!editing ? (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-primary gap-1"
+                    onClick={() => setEditMode(true)}
+                    title="Unlock the sliders and weights to change the recipe"
+                  >
+                    <Pencil size={14} /> Edit
+                  </button>
+                ) : (
+                <>
                 <div className="join">
                   <button
                     type="button"
@@ -383,11 +404,24 @@ export function CalculatorView() {
                 >
                   <Milk size={14} /> Swap dairy
                 </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-ghost gap-1"
+                  onClick={() => setEditMode(false)}
+                  title="Lock the recipe so scrolling past a slider can't change it"
+                >
+                  <Check size={14} /> Done
+                </button>
+                </>
+                )}
                 </div>
               </div>
-              <IngredientSearch onSelect={addIngredient} />
-              <div className="mt-4">
+              {editing && <IngredientSearch onSelect={addIngredient} />}
+              {/* Read-only: a disabled fieldset makes every slider and box inert, so
+                  a finger scrolling past one can't change the recipe. */}
+              <fieldset disabled={!editing} className={`mt-4 min-w-0 ${editing ? "" : "view-only"}`}>
                 <IngredientPanel
+                  readOnly={!editing}
                   key={currentRecipe?.id ?? "new"}
                   rows={rows}
                   comparisons={result?.target_comparison ?? null}
@@ -400,7 +434,7 @@ export function CalculatorView() {
                   lockedKeys={lockedKeys}
                   onToggleLock={toggleLock}
                 />
-              </div>
+              </fieldset>
             </div>
 
             {currentRecipe && (
@@ -481,7 +515,7 @@ export function CalculatorView() {
                     <MetricCards
                       comparisons={result.target_comparison}
                       freezeMetric={freezeMetric}
-                      onDragMetric={metricDrag}
+                      onDragMetric={editing ? metricDrag : undefined}
                     />
                     {usageWarnings.length > 0 && (
                       <ul className="mt-3 space-y-1 border-t border-base-200 pt-2 text-xs text-amber-700 dark:text-amber-400">

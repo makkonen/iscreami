@@ -9,6 +9,13 @@ body {
   overflow-x: clip;
 }
 
+/* The calculator's read-only mode disables its inputs; keep them readable
+   rather than greyed out. */
+fieldset.view-only :disabled {
+  opacity: 1;
+  cursor: default;
+}
+
 /* Print in the light theme whatever the screen uses: dark-mode text would
    come out pale on white paper. */
 @media print {
