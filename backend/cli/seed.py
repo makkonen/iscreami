@@ -169,7 +169,7 @@ TARGET_PROFILES = [
         "Sorbet",
         default_serving_method="tempered",
         sweetness_min=16.0,
-        sweetness_max=28.0,
+        sweetness_max=30.0,
         total_solids_min=22.0,
         total_solids_max=34.0,
         total_fat_min=0.0,
