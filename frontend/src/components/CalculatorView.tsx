@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { DeleteRecipeMessage } from "./DeleteRecipeMessage";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { IceCreamCone, Redo2, Scale, Undo2 } from "lucide-react";
@@ -629,9 +630,7 @@ export function CalculatorView() {
         <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="Delete recipe">
           <div className="modal-box max-w-sm">
             <h3 className="font-bold text-lg mb-2">Delete Recipe</h3>
-            <p className="text-base-content/70">
-              Delete <strong>{currentRecipe?.name}</strong>? This cannot be undone.
-            </p>
+            {currentRecipe && <DeleteRecipeMessage recipeId={currentRecipe.id} name={currentRecipe.name} />}
             <div className="modal-action">
               <button
                 type="button"

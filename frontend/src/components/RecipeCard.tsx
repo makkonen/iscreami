@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DeleteRecipeMessage } from "./DeleteRecipeMessage";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Calendar, Download, Target, Trash2, Utensils, Weight } from "lucide-react";
@@ -134,9 +135,7 @@ export function RecipeCard({ recipe }: RecipeCardProps) {
         <div className="modal modal-open" role="dialog" aria-modal="true" aria-label="Delete recipe">
           <div className="modal-box max-w-sm">
             <h3 className="font-bold text-lg mb-2">Delete Recipe</h3>
-            <p className="text-base-content/70">
-              Delete <strong>{recipe.name}</strong>? This cannot be undone.
-            </p>
+            <DeleteRecipeMessage recipeId={recipe.id} name={recipe.name} />
             <div className="modal-action">
               <button
                 type="button"
