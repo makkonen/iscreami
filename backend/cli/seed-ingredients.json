@@ -123,6 +123,47 @@
     "usage_max_pct": 2.0
   },
   {
+    "name": "Sucralose (pure)",
+    "category_slug": "sweetener",
+    "description": "Pure sucralose (E955), about 600x as sweet as sucrose. PAC from its molecular weight (397.6, vs sucrose 342.3); at the hundredths of a percent it's used at, its effect on freezing is negligible.",
+    "water_pct": 0.0,
+    "total_fat_pct": 0.0,
+    "protein_pct": 0.0,
+    "carbohydrate_pct": 0.0,
+    "total_sugar_pct": 0.0,
+    "sodium_mg": 0.0,
+    "energy_kj_per_100g": 0.0,
+    "pac_override": 86.1,
+    "pod_override": 60000.0,
+    "usage_max_pct": 0.03,
+    "aliases": [
+      "sucralose",
+      "E955",
+      "Splenda (pure)"
+    ]
+  },
+  {
+    "name": "Stevioside (pure)",
+    "category_slug": "sweetener",
+    "description": "Pure stevia extract (steviol glycosides as stevioside), about 250x as sweet as sucrose. PAC from its molecular weight (804.9); negligible at the amounts used. Granulated stevia products are mostly bulking agent and much less sweet per gram.",
+    "water_pct": 0.0,
+    "total_fat_pct": 0.0,
+    "protein_pct": 0.0,
+    "carbohydrate_pct": 0.0,
+    "total_sugar_pct": 0.0,
+    "sodium_mg": 0.0,
+    "energy_kj_per_100g": 0.0,
+    "pac_override": 42.5,
+    "pod_override": 25000.0,
+    "usage_max_pct": 0.05,
+    "aliases": [
+      "stevia",
+      "stevia extract",
+      "steviol glycosides",
+      "E960"
+    ]
+  },
+  {
     "name": "Inulin",
     "category_slug": "other",
     "water_pct": 0.0,
