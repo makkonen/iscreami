@@ -344,8 +344,10 @@ export function CalculatorView() {
           {/* Left: Ingredient Panel */}
           <div>
             <div className="bg-base-100 rounded-xl shadow-sm border border-base-200 p-4">
-              <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                <div>
+              {/* Edit/Lock keeps one fixed place at the end of the heading; the
+                  editing tools get their own row, so nothing pushes it around. */}
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
                   <h2 className="text-sm font-semibold uppercase tracking-wider text-base-content/50">
                     Ingredients
                   </h2>
@@ -353,11 +355,9 @@ export function CalculatorView() {
                     Build the mix here. Lock rows you want left alone, then balance.
                   </p>
                 </div>
-                <div className="flex flex-wrap items-center gap-1">
-                {/* One button in one place: Edit unlocks the recipe, Lock locks it again. */}
                 <button
                   type="button"
-                  className="btn btn-sm btn-primary gap-1"
+                  className="btn btn-sm btn-primary w-20 shrink-0 gap-1"
                   onClick={() => setEditMode(!editing)}
                   aria-pressed={editing}
                   title={
@@ -376,51 +376,50 @@ export function CalculatorView() {
                     </>
                   )}
                 </button>
-                {editing && (
-                <>
-                <div className="join">
-                  <button
-                    type="button"
-                    className="join-item btn btn-sm btn-ghost px-2"
-                    onClick={undo}
-                    disabled={!canUndo}
-                    aria-label="Undo"
-                    title="Undo (Ctrl+Z)"
-                  >
-                    <Undo2 size={15} />
-                  </button>
-                  <button
-                    type="button"
-                    className="join-item btn btn-sm btn-ghost px-2"
-                    onClick={redo}
-                    disabled={!canRedo}
-                    aria-label="Redo"
-                    title="Redo (Ctrl+Shift+Z)"
-                  >
-                    <Redo2 size={15} />
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline gap-1 shrink-0"
-                  onClick={() => setBalanceOpen(true)}
-                  disabled={!rows.some((r) => !r.is_addin && r.weight_grams > 0)}
-                >
-                  <Scale size={14} /> Balance
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline gap-1 shrink-0"
-                  onClick={() => setDairyOpen(true)}
-                  disabled={!rows.some((r) => !r.is_addin && r.weight_grams > 0 && isSwappableDairy(r.ingredient))}
-                  title="Use the milk, cream and milk powder you have instead, keeping the same weight, fat and milk solids"
-                >
-                  <Milk size={14} /> Swap dairy
-                </button>
-                </>
-                )}
-                </div>
               </div>
+              {editing && (
+                <div className="mb-3 flex flex-wrap items-center gap-1">
+                  <div className="join">
+                    <button
+                      type="button"
+                      className="join-item btn btn-sm btn-ghost px-2"
+                      onClick={undo}
+                      disabled={!canUndo}
+                      aria-label="Undo"
+                      title="Undo (Ctrl+Z)"
+                    >
+                      <Undo2 size={15} />
+                    </button>
+                    <button
+                      type="button"
+                      className="join-item btn btn-sm btn-ghost px-2"
+                      onClick={redo}
+                      disabled={!canRedo}
+                      aria-label="Redo"
+                      title="Redo (Ctrl+Shift+Z)"
+                    >
+                      <Redo2 size={15} />
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline gap-1 shrink-0"
+                    onClick={() => setBalanceOpen(true)}
+                    disabled={!rows.some((r) => !r.is_addin && r.weight_grams > 0)}
+                  >
+                    <Scale size={14} /> Balance
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline gap-1 shrink-0"
+                    onClick={() => setDairyOpen(true)}
+                    disabled={!rows.some((r) => !r.is_addin && r.weight_grams > 0 && isSwappableDairy(r.ingredient))}
+                    title="Use the milk, cream and milk powder you have instead, keeping the same weight, fat and milk solids"
+                  >
+                    <Milk size={14} /> Swap dairy
+                  </button>
+                </div>
+              )}
               {editing && <IngredientSearch onSelect={addIngredient} />}
               {/* Read-only: a disabled fieldset makes every slider and box inert, so
                   a finger scrolling past one can't change the recipe. */}
