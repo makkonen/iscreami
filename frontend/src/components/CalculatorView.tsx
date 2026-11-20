@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { DeleteRecipeMessage } from "./DeleteRecipeMessage";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { IceCreamCone, Redo2, Scale, Undo2 } from "lucide-react";
+import { IceCreamCone, Milk, Redo2, Scale, Undo2 } from "lucide-react";
 import { BalanceModal } from "./BalanceModal";
+import { DairySwapModal } from "./DairySwapModal";
+import { type DairyPart, isFluidDairy } from "../lib/dairySwap";
 import { BatchLog } from "./BatchLog";
 import { RecipeText } from "./RecipeText";
-import { keyFor, type RecipeRow } from "../hooks/useRecipeCalculator";
+import { keyFor, rowKey, type RecipeRow } from "../hooks/useRecipeCalculator";
 import type { BatchSnapshot, Ingredient, MetricComparison, TargetProfile } from "../types";
 import { fetchIngredient, fetchProfiles, fetchRecipe, fetchRecipes, fetchServingMethods } from "../api";
 import { useToast } from "../hooks/useToast";
@@ -25,6 +27,26 @@ import { RecipeHeader } from "./RecipeHeader";
 import { InfoIcon } from "./InfoIcon";
 import { useEscape } from "../hooks/useEscape";
 import { TOOLTIPS } from "../lib/tooltips";
+
+/**
+ * The rows with the swapped-out dairy replaced: the new dairy goes where the
+ * first replaced row was, and joins any row of the same ingredient that stays.
+ */
+function swapDairy(rows: RecipeRow[], keys: string[], parts: DairyPart[]): RecipeRow[] {
+  const replacing = new Set(keys);
+  const at = rows.findIndex((r) => replacing.has(rowKey(r)));
+  // Copies, so merging weights below doesn't touch the current rows.
+  const kept = rows.filter((r) => !replacing.has(rowKey(r))).map((r) => ({ ...r }));
+  const added: RecipeRow[] = [];
+  for (const part of parts) {
+    const existing = kept.find((r) => !r.is_addin && r.ingredient.id === part.ingredient.id);
+    if (existing) existing.weight_grams = Math.round((existing.weight_grams + part.grams) * 100) / 100;
+    else added.push({ ingredient: part.ingredient, weight_grams: part.grams, sort_order: 0, is_addin: false });
+  }
+  const before = rows.slice(0, Math.max(at, 0)).filter((r) => !replacing.has(rowKey(r))).length;
+  const next = [...kept.slice(0, before), ...added, ...kept.slice(before)];
+  return next.map((r, i) => ({ ...r, sort_order: i }));
+}
 
 // Advisory metrics (stabilizer, emulsifier) don't count toward "in range".
 const counted = (c: MetricComparison) => isTargeted(c) && !c.advisory;
@@ -161,6 +183,7 @@ export function CalculatorView() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [balanceOpen, setBalanceOpen] = useState(false);
+  const [dairyOpen, setDairyOpen] = useState(false);
   const [newRecipeName, setNewRecipeName] = useState("");
   // Whether the name dialog is saving a duplicate of the open recipe.
   const [duplicating, setDuplicating] = useState(false);
@@ -348,6 +371,15 @@ export function CalculatorView() {
                   disabled={!rows.some((r) => !r.is_addin && r.weight_grams > 0)}
                 >
                   <Scale size={14} /> Balance
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline gap-1 shrink-0"
+                  onClick={() => setDairyOpen(true)}
+                  disabled={!rows.some((r) => !r.is_addin && r.weight_grams > 0 && isFluidDairy(r.ingredient))}
+                  title="Rebuild the milk and cream from what you have, keeping weight and fat"
+                >
+                  <Milk size={14} /> Swap dairy
                 </button>
                 </div>
               </div>
@@ -576,6 +608,17 @@ export function CalculatorView() {
             setBalanceOpen(false);
           }}
           onClose={() => setBalanceOpen(false)}
+        />
+      )}
+
+      {dairyOpen && (
+        <DairySwapModal
+          rows={rows}
+          onApply={(keys, parts) => {
+            replaceRows(swapDairy(rows, keys, parts));
+            setDairyOpen(false);
+          }}
+          onClose={() => setDairyOpen(false)}
         />
       )}
 
