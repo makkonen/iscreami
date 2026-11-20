@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ClearButton } from "./ClearButton";
 import { useQuery } from "@tanstack/react-query";
 import { fetchIngredients } from "../api";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
@@ -109,7 +110,14 @@ export function IngredientSearch({ onSelect }: IngredientSearchProps) {
         onFocus={() => setDismissed(false)}
         onKeyDown={handleKeyDown}
         placeholder="Search ingredients..."
-        className="input input-bordered input-sm w-full"
+        className="input input-bordered input-sm w-full pr-8"
+      />
+      <ClearButton
+        visible={query.length > 0}
+        onClear={() => {
+          setQuery("");
+          setDismissed(true);
+        }}
       />
       {dropdownOpen && (
         <ul

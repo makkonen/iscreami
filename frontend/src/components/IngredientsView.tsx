@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ClearButton } from "./ClearButton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { Search, Plus, Pencil, Trash2 } from "lucide-react";
@@ -150,7 +151,14 @@ export function IngredientsView() {
             placeholder="Search ingredients by name..."
             value={searchInput}
             onChange={(e) => { setSearchInput(e.target.value); setPage(1); }}
-            className="input input-bordered input-sm w-full pl-9 pr-3"
+            className="input input-bordered input-sm w-full pl-9 pr-8"
+          />
+          <ClearButton
+            visible={searchInput.length > 0}
+            onClear={() => {
+              setSearchInput("");
+              setPage(1);
+            }}
           />
         </div>
         <select

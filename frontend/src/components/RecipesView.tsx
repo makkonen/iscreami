@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { ClearButton } from "./ClearButton";
 import { useQuery } from "@tanstack/react-query";
 import { Plus, Download, Upload } from "lucide-react";
 import { fetchRecipes, exportAllRecipes, importRecipes } from "../api";
@@ -177,14 +178,17 @@ export function RecipesView() {
       {!isLoading && !isError && recipes.length > 0 && (
         <>
           <div className="mb-4 flex items-center gap-3">
-            <input
-              type="search"
-              className="input input-bordered input-sm w-full sm:max-w-sm"
-              placeholder="Search recipes, notes or ingredients…"
-              aria-label="Search recipes"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <div className="relative w-full sm:max-w-sm">
+              <input
+                type="text"
+                className="input input-bordered input-sm w-full pr-8"
+                placeholder="Search recipes, notes or ingredients…"
+                aria-label="Search recipes"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <ClearButton visible={search.length > 0} onClear={() => setSearch("")} />
+            </div>
             <select
               className="select select-sm w-auto shrink-0"
               value={sort}
