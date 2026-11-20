@@ -80,19 +80,39 @@ def _profile(name: str, **ranges: float | str) -> dict:
 
 
 TARGET_PROFILES = [
+    # Ice cream is split by the industry's tiers (Goff & Hartel): regular 10-12%
+    # fat and 36-38% solids, premium 12-14% and 38-40%, super-premium 14-18%+
+    # and 40-46%. They differ in air (overrun) too, which isn't modelled, so the
+    # split is by fat and solids. The two sit side by side rather than one
+    # inside the other, so each recipe gets a clear style.
     _profile(
         "Ice cream",
         default_serving_method="tempered",
         sweetness_min=12.0,
         sweetness_max=20.0,
         total_solids_min=36.0,
-        total_solids_max=44.0,
+        total_solids_max=40.0,
         total_fat_min=10.0,
-        total_fat_max=18.0,
-        milk_fat_max=18.0,
+        total_fat_max=14.0,
+        milk_fat_max=14.0,
         msnf_max=12.0,
         stabilizer_min=0.1,
         stabilizer_max=0.3,
+        emulsifier_max=0.3,
+    ),
+    _profile(
+        "Super-premium ice cream",
+        default_serving_method="tempered",
+        sweetness_min=12.0,
+        sweetness_max=20.0,
+        total_solids_min=38.0,
+        total_solids_max=46.0,
+        total_fat_min=14.0,
+        total_fat_max=20.0,
+        milk_fat_max=20.0,
+        msnf_max=11.0,
+        stabilizer_min=0.05,
+        stabilizer_max=0.25,
         emulsifier_max=0.3,
     ),
     _profile(

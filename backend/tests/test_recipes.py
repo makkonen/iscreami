@@ -202,3 +202,36 @@ class TestPaprikaExport:
         assert rec["categories"] == ["Ice Cream", "Reference/X"]
         assert rec["source_url"] == "https://example.com/r"
         assert rec["nutritional_info"].startswith("Per 100 g:")
+
+
+class TestListStyles:
+    """The recipe list says which profile each unpinned recipe fits best."""
+
+    def test_suggested_profile_in_list(self, test_db):
+        from api.routes.recipes import list_recipes
+        from tests.conftest import (
+            make_ingredient_orm,
+            make_profile_orm,
+            make_recipe_orm,
+        )
+
+        lean = make_profile_orm(
+            test_db, name="Lean", total_fat_min=0.0, total_fat_max=5.0
+        )
+        rich = make_profile_orm(
+            test_db, name="Rich", total_fat_min=30.0, total_fat_max=40.0
+        )
+        milk = make_ingredient_orm(
+            test_db, name="Milk", water_pct=88.0, total_fat_pct=3.0
+        )
+        auto = make_recipe_orm(test_db, name="Auto", ingredients=[(milk, 500.0, None)])
+        pinned = make_recipe_orm(
+            test_db,
+            name="Pinned",
+            target_profile_id=rich.id,
+            ingredients=[(milk, 500.0, None)],
+        )
+        by_id = {r.id: r for r in list_recipes(test_db).items}
+        assert by_id[auto.id].suggested_profile_id == lean.id
+        # A chosen profile is the style; no suggestion is needed.
+        assert by_id[pinned.id].suggested_profile_id is None

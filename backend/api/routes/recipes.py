@@ -12,7 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload, selectinload
 
 from api.db import NOT_FOUND_RESPONSE, DbSession, apply_updates
-from api.models import Recipe, RecipeIngredient
+from api.models import Recipe, RecipeIngredient, TargetProfile
 from api.schemas import (
     PaginatedRecipes,
     RecipeCreate,
@@ -21,6 +21,7 @@ from api.schemas import (
     RecipeOut,
     RecipeUpdate,
 )
+from api.services.calculator import calculate
 from api.services.export import (
     build_export_single,
     create_recipes_from_import,
@@ -92,8 +93,32 @@ def list_recipes(
         .offset(offset)
         .limit(limit)
     )
-    items = list(db.scalars(stmt).unique().all())
-    return PaginatedRecipes(total=count, items=items)  # type: ignore[arg-type]
+    recipes = list(db.scalars(stmt).unique().all())
+    profiles = list(db.scalars(select(TargetProfile).order_by(TargetProfile.name)))
+    items = []
+    for recipe in recipes:
+        out = RecipeOut.model_validate(recipe)
+        if recipe.target_profile_id is None:
+            out.suggested_profile_id = _suggested_profile_id(recipe, profiles)
+        items.append(out)
+    return PaginatedRecipes(total=count, items=items)
+
+
+def _suggested_profile_id(
+    recipe: Recipe, profiles: list[TargetProfile]
+) -> uuid.UUID | None:
+    """The profile a recipe fits best, as the calculator would pick it."""
+    mix = [
+        (ri.ingredient, float(ri.weight_grams))
+        for ri in recipe.ingredients
+        if not ri.is_addin
+    ]
+    if not mix or not profiles:
+        return None
+    result = calculate(
+        mix, candidate_profiles=profiles, serving_method_id=recipe.serving_method
+    )
+    return result.suggested_profile_id
 
 
 @router.get("/export-all", response_model=list[RecipeExportOut])

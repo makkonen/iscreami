@@ -304,6 +304,9 @@ class RecipeOut(BaseModel):
     target_profile_id: uuid.UUID | None = None
     target_profile: TargetProfileOut | None = None
     parent_id: uuid.UUID | None = None
+    # In recipe lists: the best-fitting profile when none is chosen, so the
+    # list can be filtered by style.
+    suggested_profile_id: uuid.UUID | None = None
     tags: list[str] = []
     rating: float | None = None
     created_at: datetime
