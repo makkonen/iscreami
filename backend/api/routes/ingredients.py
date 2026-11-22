@@ -39,6 +39,8 @@ def list_ingredients(
     q: Annotated[str | None, Query(max_length=200)] = None,
     category_id: int | None = None,
     source: str | None = None,
+    # Leave out bulk imports (USDA, NZFCDB): just your own and the built-in ones.
+    exclude_bulk: bool = False,
     offset: Annotated[int, Query(ge=0)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ):
@@ -78,6 +80,8 @@ def list_ingredients(
         stmt = stmt.where(Ingredient.category_id == category_id)
     if source is not None:
         stmt = stmt.where(Ingredient.source == source)
+    if exclude_bulk:
+        stmt = stmt.where(Ingredient.source.not_in(BULK_SOURCES))
 
     count_stmt = select(func.count()).select_from(stmt.subquery())
     total = db.scalar(count_stmt) or 0

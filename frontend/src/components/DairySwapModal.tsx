@@ -30,11 +30,12 @@ function saveOnHand(ids: Set<string>) {
  * each lightest first), plus plain water. Bulk imports are left out.
  */
 async function fetchDairy(): Promise<{ dairy: Ingredient[]; water?: Ingredient }> {
-  const all = (
-    await Promise.all(
-      ["icc4", "manual", "seed"].map((source) => fetchIngredients({ source, limit: 200 }).then((p) => p.items)),
-    )
-  ).flat();
+  const all: Ingredient[] = [];
+  for (let total = Infinity; all.length < total; ) {
+    const page = await fetchIngredients({ exclude_bulk: true, offset: all.length, limit: 200 });
+    all.push(...page.items);
+    total = page.items.length ? page.total : all.length;
+  }
   const powder = (i: Ingredient) => ((i.water_pct ?? 0) < 50 ? 1 : 0);
   const dairy = all
     .filter(isSwappableDairy)

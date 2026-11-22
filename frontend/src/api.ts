@@ -55,6 +55,8 @@ export function fetchIngredients(
         q?: string;
         category_id?: number;
         source?: string;
+        /** Leave out bulk imports (USDA, NZFCDB). */
+        exclude_bulk?: boolean;
         offset?: number;
         limit?: number;
     },
@@ -64,6 +66,7 @@ export function fetchIngredients(
     if (params?.q) sp.set("q", params.q);
     if (params?.category_id) sp.set("category_id", String(params.category_id));
     if (params?.source) sp.set("source", params.source);
+    if (params?.exclude_bulk) sp.set("exclude_bulk", "true");
     if (params?.offset) sp.set("offset", String(params.offset));
     if (params?.limit) sp.set("limit", String(params.limit));
     const qs = sp.toString();
