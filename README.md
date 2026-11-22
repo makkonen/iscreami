@@ -44,7 +44,6 @@ Open-source ice cream recipe formulator. Add ingredients and get real-time feedb
 
 ### Model accuracy
 
-- **Milk salts counted once**, by sodium, so whey and milk protein isolates don't read softer than they freeze.
 - **Fibres and starches** (inulin, FOS, polydextrose, starch) have realistic anti-freeze values and energy.
 - **Chocolate hardening correction** - cocoa butter and cocoa solids firm a mix up (applied at half
   the textbook strength, which matches real results better).
